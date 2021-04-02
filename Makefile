@@ -6,7 +6,7 @@ all:  flex-config bison-config nutshparser nutshscan nutshell nutshell-out
 
 
 flex-config:
-	flex FLEX_FILE_NAME
+	flex nutshscanner.l
 
 bison-config:
 	bison -d nutshparser.y
