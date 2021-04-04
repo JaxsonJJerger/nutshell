@@ -8,6 +8,7 @@
 // int *max_xpand = &envTable.max_xpand;
 // envTable.env_xpand = 0;
 // envTable.max_xpand = 1;
+int alias_xpand = 0;
 char *stringSaver;
 int alias_xpand = 0;
 bool isUnalias = false;
@@ -153,6 +154,7 @@ ENVEND          [}]
 PIPE            "|"
 RUNINBG         "&"
 fileName        [A-Za-z0-9\/_-][A-Za-z0-9\/_-]*"."[A-Za-z0-9\/_-][A-Za-z0-9\/_-]*
+pathName
 
 %%
 <string_condition>{ANYCHAR}+    {

@@ -262,6 +262,26 @@ int runUnalias(char *name) {
 		* quotes will not stay with word, intended
 	- should be able to place a quote in word?
 */
+
+// parse path word:word:word
+char* parsePath(char *path) {
+	const char s[2] = ":"
+	char *token;
+	
+
+	// get the first token
+	token = strtok(str, s);
+
+	// walk through other tokens
+	while(token != NULL) 
+	{
+		// do something with tokens
+		printf("%s\n", token);
+
+		token = strtok(NULL, s);
+	}
+}
+
 int runSetenv(char *var, char *word) {
 
 	// check length of var/word string
@@ -271,17 +291,42 @@ int runSetenv(char *var, char *word) {
 		return -1;
 	}
 
-	// search for existing environment variable name
-	// if yes, replace existing word and return
-	for (int i = 0; i < envIndex; i++) {
+	// may need to parse/recursively store path, we'll see
+	char* temp = path; // to be placed in envTable
 
-		if(strcmp(envTable.var[i], var) == 0) 
+	// check if var is PATH
+	// search for PATH environment variable
+	if(strcmp(var, "PATH") == 0)
+	{
+		// check if first character is "."
+		if (word[0] == ".")
 		{
-			strcpy(envTable.word[i], word);
-			return 1;
+			// find PATH in table
+			for (int i = 0; i < envIndex; i++) 
+			{
+				// store path to be parsed
+				strcpy(envTable.word[i], word);
+			}
+		}
+		else
+		{
+			return -1;
 		}
 	}
+	// search for existing environment variable name
+	// if yes, replace existing word and return
+	else
+	{
+		for (int i = 0; i < envIndex; i++) {
 
+			if(strcmp(envTable.var[i], var) == 0) 
+			{
+				strcpy(envTable.word[i], word);
+				return 1;
+			}
+		}
+	}
+	
 	// New env var to add to table if there is space, index wise
 	if (envIndex < (sizeof(envTable.var)/sizeof(envTable.var[0])))
 	{
