@@ -13,10 +13,10 @@ struct aTable {
 
 char cwd[PATH_MAX];
 
-struct evTable varTable;
+struct evTable envTable; // Environment Variable Table
 
 struct aTable aliasTable;
 
-int aliasIndex, varIndex;
+int aliasIndex, envIndex;
 
 char* subAliases(char* name);
