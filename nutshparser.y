@@ -14,21 +14,23 @@ int runCD(char* arg);
 int runSetAlias(char *name, char *word);
 int runSetEV(char *var, char *word);
 int printEVTable();
+int runUnsetEV(char *var);
 %}
 
 %union {char *string;}
 
 %start cmd_line
-%token <string> BYE CD STRING ALIAS SETENV PRINTENV END
+%token <string> BYE CD STRING ALIAS SETENV PRINTENV UNSETENV END
 
 %%
 cmd_line    :
-	BYE END 		                {exit(1); return 1; }
-	| CD END                        {runCD(" "); return 1; }
+	BYE END 		                {exit(1); return 1;}
+	| CD END                        {runCD(" "); return 1;}
 	| CD STRING END        			{runCD($2); return 1;}
 	| ALIAS STRING STRING END		{runSetAlias($2, $3); return 1;}
 	| SETENV STRING STRING END		{runSetEV($2, $3); return 1;}
 	| PRINTENV END					{printEVTable(); return 1;}
+	| UNSETENV STRING END			{runUnsetEV($2); return 1;}
 
 %%
 
@@ -103,6 +105,7 @@ int runSetAlias(char *name, char *word) {
 			- expand to preserve current alias?
 			- keep alias and expand using alias when env var called
 	- check for unacceptable characters (if any)
+	- check for length of string being less than max size
 */
 int runSetEV(char *var, char *word) {
 
@@ -117,14 +120,62 @@ int runSetEV(char *var, char *word) {
 		}
 	}
 
-	// New env var to add to table
-	strcpy(envTable.var[envIndex], var);
-	strcpy(envTable.word[envIndex], word);
-	envIndex++;
+	// New env var to add to table if there is space, index wise
+	if (envIndex < (sizeof(envTable.var)/sizeof(envTable.var[0])))
+	{
+		if (envIndex < (sizeof(envTable.word)/sizeof(envTable.word[0])))
+		{
+			strcpy(envTable.var[envIndex], var);
+			strcpy(envTable.word[envIndex], word);
+			envIndex++;
+		}
+		else
+		{
+			printf("Error: var size != word size.");
+		}
+	}
+	else // should no space be left, do nothing but print error
+	{
+		char *fullTable = "You have too many environment variables,"
+							"consider unbinding some using:\n"
+							"\tunsetenv [variable] \n";
+		printf("%s", fullTable);
+	}
 
 	return 1;
 }
 
+/* due to the nature of strcpy, all chars in 2D table
+ columns of a row are cleared, no leftover chars after
+ setting a new variable */
+int runUnsetEV(char *var) {
+
+	// don't waste time if index is 0
+	if (envIndex > 0)
+	{
+		// find variable to unbound
+		for (int i = 0; i < envIndex; i++)
+		{
+			if (strcmp(envTable.var[i], var) == 0)
+			{
+				// unbind variable by shifting all up
+				int next;
+				for (int j = i; j < envIndex-1; j++)
+				{
+					next = j+1;
+					strcpy(envTable.var[j], envTable.var[next]);
+					strcpy(envTable.word[j], envTable.word[next]);
+				}
+				--envIndex; // remove unbinded variable index
+				// next setenv will change data
+				return 1;
+			}
+		}
+	}
+	return 1;
+}
+
+// relies on the accuracy of envIndex to print
 int printEVTable() {
 
 	if (envIndex > 0)
