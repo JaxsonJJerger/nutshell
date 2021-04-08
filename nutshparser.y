@@ -12,9 +12,9 @@ int yylex(void);
 int yyerror(char *s);
 int runCD(char* arg);
 int runSetAlias(char *name, char *word);
-int runSetEV(char *var, char *word);
-int printEVTable();
-int runUnsetEV(char *var);
+int runSetenv(char *var, char *word);
+int printenvTable();
+int runUnsetenv(char *var);
 %}
 
 %union {char *string;}
@@ -28,9 +28,9 @@ cmd_line    :
 	| CD END                        {runCD(" "); return 1;}
 	| CD STRING END        			{runCD($2); return 1;}
 	| ALIAS STRING STRING END		{runSetAlias($2, $3); return 1;}
-	| SETENV STRING STRING END		{runSetEV($2, $3); return 1;}
-	| PRINTENV END					{printEVTable(); return 1;}
-	| UNSETENV STRING END			{runUnsetEV($2); return 1;}
+	| SETENV STRING STRING END		{runSetenv($2, $3); return 1;}
+	| PRINTENV END					{printenvTable(); return 1;}
+	| UNSETENV STRING END			{runUnsetenv($2); return 1;}
 
 %%
 
@@ -105,14 +105,23 @@ int runSetAlias(char *name, char *word) {
 			- expand to preserve current alias?
 			- keep alias and expand using alias when env var called
 	- check for unacceptable characters (if any)
-	- check for length of string being less than max size
+		* using a ':' will have yytext separate (quotes do not work)
+		* quotes will not stay with word, intended
+	- should be able to place a quote in word?
 */
-int runSetEV(char *var, char *word) {
+int runSetenv(char *var, char *word) {
 
+	// check length of var/word string
+	if ((strlen(var) >= maxCharsEV) || (strlen(word) >= maxCharsEV))
+	{
+		printf("Error: var/word length should be <%d.\n", maxCharsEV);
+		return -1;
+	}
+
+	// search for existing environment variable name
+	// if yes, replace existing word and return
 	for (int i = 0; i < envIndex; i++) {
 
-		// search for existing environment variable name
-		// if yes, replace existing word and return
 		if(strcmp(envTable.var[i], var) == 0) 
 		{
 			strcpy(envTable.word[i], word);
@@ -131,7 +140,8 @@ int runSetEV(char *var, char *word) {
 		}
 		else
 		{
-			printf("Error: var size != word size.");
+			printf("Error: var size != word size. Internal error.");
+			return -1;
 		}
 	}
 	else // should no space be left, do nothing but print error
@@ -140,6 +150,7 @@ int runSetEV(char *var, char *word) {
 							"consider unbinding some using:\n"
 							"\tunsetenv [variable] \n";
 		printf("%s", fullTable);
+		return -1;
 	}
 
 	return 1;
@@ -148,7 +159,7 @@ int runSetEV(char *var, char *word) {
 /* due to the nature of strcpy, all chars in 2D table
  columns of a row are cleared, no leftover chars after
  setting a new variable */
-int runUnsetEV(char *var) {
+int runUnsetenv(char *var) {
 
 	// don't waste time if index is 0
 	if (envIndex > 0)
@@ -176,7 +187,7 @@ int runUnsetEV(char *var) {
 }
 
 // relies on the accuracy of envIndex to print
-int printEVTable() {
+int printenvTable() {
 
 	if (envIndex > 0)
 	{
