@@ -38,6 +38,7 @@ cmd_line    :
 	| PRINTENV END					{printenvTable(); return 1;}
 	| UNSETENV STRING END			{runUnsetenv($2); return 1;}
 	| CMD END						{cmdRunner(); return 1;}
+	| ENV							{runEnvXpand($1); return 1;}
 
 %%
 

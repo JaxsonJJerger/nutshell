@@ -14,6 +14,7 @@ int alias_xpand = 0;
 bool isUnalias = false;
 bool moreChars = false;
 bool firstWord = true;
+int env_xpand = 0;
 
 char* getCmdPath(char *cmd){
     char *paths[] = {".","/fake/path","/bin","/usr/bin","/usr/local/bin"}; 
@@ -32,6 +33,7 @@ char* getCmdPath(char *cmd){
     }
     return cmd;
 }
+
 
 char* subAliases(char* name){
     for (int i = 0; i < aliasIndex; i++) {
