@@ -15,12 +15,13 @@ int runSetAlias(char *name, char *word);
 int runSetenv(char *var, char *word);
 int printenvTable();
 int runUnsetenv(char *var);
+int runEnvXpand(char *var);
 %}
 
 %union {char *string;}
 
 %start cmd_line
-%token <string> BYE CD STRING ALIAS SETENV PRINTENV UNSETENV END
+%token <string> BYE CD STRING ALIAS SETENV PRINTENV UNSETENV ENV END
 
 %%
 cmd_line    :
@@ -31,6 +32,7 @@ cmd_line    :
 	| SETENV STRING STRING END		{runSetenv($2, $3); return 1;}
 	| PRINTENV END					{printenvTable(); return 1;}
 	| UNSETENV STRING END			{runUnsetenv($2); return 1;}
+	| ENV							{runEnvXpand($1); return 1;}
 
 %%
 
@@ -201,4 +203,8 @@ int printenvTable() {
 		printf("You have no environment variables...\n");
 		printf("To add some, use:\n\tsetenv [variable] [value]\n");
 	}
+}
+
+int runEnvXpand(char *var){
+	// add to be concatenated
 }
