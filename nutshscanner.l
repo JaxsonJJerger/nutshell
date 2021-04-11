@@ -57,16 +57,14 @@ alias		        { return ALIAS; }
 setenv              { return SETENV; moreChars = true; }
 printenv            { return PRINTENV; }
 unsetenv            { return UNSETENV; }
-"\n"		        { return END; max_xpand = 1; }
+"\n"		        { max_xpand = 1; return END; }
 [\"]                { BEGIN(string_condition); }
 {ENV}               { 
                         //ensure next string is treated as a expansion
                         // only finds env vars that are separate words
                         if (max_xpand > 0)
                         {
-                            env_xpand = 1; 
-                        env_xpand = 1; 
-                            env_xpand = 1; 
+                            env_xpand = 1;
                         }
                         else
                         {
@@ -87,9 +85,8 @@ unsetenv            { return UNSETENV; }
                                 unput( yycopy[i] );
                             free( yycopy );
                         }
-                        else if (env_xpand) 
+                        else if (env_xpand && max_xpand) 
                         {
-                            max_xpand = 0;
                             printf("yytext: %s\n", yytext);
 
                             // search table for variable
@@ -99,13 +96,21 @@ unsetenv            { return UNSETENV; }
                                 for ( int i = strlen(dupWord) - 1; i >= 0; --i )
                                     unput( dupWord[i] );
                             }
+                            max_xpand = 0;
                             env_xpand = 0;
                         }
                         else 
                         {
                             printf("yytext: %s\n", yytext);
                             yylval.string = strdup(yytext);
-                            return STRING;
+                            if (max_xpand == 1)
+                            {
+                                return STRING;
+                            }
+                            else if (max_xpand == 0)
+                            {
+                                //return ENVX;
+                            }
                         };
                     }
 %%
