@@ -25,8 +25,8 @@ int runEnvXpand(char *var);
 
 %%
 cmd_line    :
-	BYE END 		                {exit(1); return 1;}
-	| CD END                        {runCD(" "); return 1;}
+	BYE END 		                {exit(1); return 1; }
+	| CD END						{runCD(" "); return 1; }
 	| CD STRING END        			{runCD($2); return 1;}
 	| ALIAS STRING STRING END		{runSetAlias($2, $3); return 1;}
 	| SETENV STRING STRING END		{runSetenv($2, $3); return 1;}
@@ -44,7 +44,16 @@ int runCD(char* arg) {
 	if (arg[0] == ' ') { 
 		// no arg available
     	// move to home directory
-        
+		if (chdir(varTable.word[1]) == 0){
+			strcpy(varTable.word[0], varTable.word[1]);
+			return 1;
+		}
+		else
+		{
+			printf("HOME directory is not a directory");
+			return -1;
+		}
+		
     }
 	else if (arg[0] != '/') { // arg is relative path
 
@@ -68,7 +77,7 @@ int runCD(char* arg) {
 		}
 		else {
 			printf("Directory not found\n");
-                       	return 1;
+            return 1;
 		}
 	}
 }
