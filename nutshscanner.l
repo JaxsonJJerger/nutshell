@@ -292,7 +292,14 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             firstWord=false;
                             printf("yytext: %s\n", yytext);
                             yylval.string = strdup(yytext);
-                            return STRING;
+                            if (max_xpand == 1)
+                            {
+                                return STRING;
+                            }
+                            else if (max_xpand == 0)
+                            {
+                                //return ENVX;
+                            }
                         };
                     }
 {fileName}          {
