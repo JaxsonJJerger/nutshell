@@ -5,6 +5,8 @@
 #include "global.h"
 
 int env_xpand = 0;
+int max_xpand = 1;
+bool moreChars = false;
 char* subAliases(char* name){
     for (int i = 0; i < aliasIndex; i++) {
         if(strcmp(aliasTable.name[i], name) == 0) {
@@ -40,9 +42,9 @@ bool ifENV(char *var, char **dupWord){
 %x env_expansion
 
 CHAR            [.A-Za-z0-9!\/_-][.A-Za-z0-9!\/_-]*
-ANYCHAR            [)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -][)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -]*
-ENV                 [$][{]
-ENVEND              [}]
+ANYCHAR         [)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -][)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -]*
+ENV             [$][{]
+ENVEND          [}]
 
 %%
 <string_condition>{ANYCHAR}+     { yylval.string = strdup(yytext); return STRING;}
@@ -52,14 +54,24 @@ ENVEND              [}]
 bye                 { return BYE; }
 cd		            { return CD; }
 alias		        { return ALIAS; }
-setenv              { return SETENV; }
+setenv              { return SETENV; moreChars = true; }
 printenv            { return PRINTENV; }
 unsetenv            { return UNSETENV; }
-"\n"		        { return END; }
+"\n"		        { return END; max_xpand = 1; }
 [\"]                { BEGIN(string_condition); }
 {ENV}               { 
                         //ensure next string is treated as a expansion
+                        // only finds env vars that are separate words
+                        if (max_xpand > 0)
+                        {
+                            env_xpand = 1; 
                         env_xpand = 1; 
+                            env_xpand = 1; 
+                        }
+                        else
+                        {
+                            // take rest of input and return string
+                        }
                     }
 {ENVEND}            {
                         if (env_xpand != 1)
@@ -77,7 +89,9 @@ unsetenv            { return UNSETENV; }
                         }
                         else if (env_xpand) 
                         {
+                            max_xpand = 0;
                             printf("yytext: %s\n", yytext);
+
                             // search table for variable
                             char *dupWord = strdup(yytext);
                             if(ifENV(yytext, &dupWord))
@@ -95,29 +109,3 @@ unsetenv            { return UNSETENV; }
                         };
                     }
 %%
-
-// char *yycopy = "";
-                        // char *yyenv = "";
-                        
-                        // //begin reading chars until closing bracket found or
-                        // // empty input
-                        
-                        // char c[1];
-                        // c[0] = input();
-                        // int cnt = 0;
-                        
-                        // while(c[0] != '}' && c[0] != '\n' && cnt < 512)
-                        // {
-                        //     cnt++;
-                        //     printf("%s",c);
-                        //     strcat(yyenv, c);
-                        //     c[0] = input();
-
-                        //     if (cnt > 512)
-                        //     {
-                        //         break;
-                        //     }
-                        // }
-                        // printf("Found an env var: %s\n", yyenv);
-                        // yylval.string = strdup(yyenv);
-                        // return STRING;
