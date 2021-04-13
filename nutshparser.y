@@ -21,7 +21,7 @@ int runEnvXpand(char *var);
 %union {char *string;}
 
 %start cmd_line
-%token <string> BYE CD STRING ALIAS SETENV PRINTENV UNSETENV ENV END
+%token <string> BYE CD STRING ALIAS SETENV PRINTENV UNSETENV ENVX END
 
 %%
 cmd_line    :
@@ -32,7 +32,6 @@ cmd_line    :
 	| SETENV STRING STRING END		{runSetenv($2, $3); return 1;}
 	| PRINTENV END					{printenvTable(); return 1;}
 	| UNSETENV STRING END			{runUnsetenv($2); return 1;}
-	| ENV							{runEnvXpand($1); return 1;}
 
 %%
 

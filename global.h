@@ -19,6 +19,8 @@ struct evTable envTable; // Environment Variable Table
 
 struct aTable aliasTable;
 
-int aliasIndex, envIndex;
+int aliasIndex, envIndex, env_xpand, max_xpand;
 
 char* subAliases(char* name);
+void strFindEnv(char *str, char **outstr);
+bool ifENV(char *var, char **dupWord);

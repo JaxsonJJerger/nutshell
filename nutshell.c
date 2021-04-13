@@ -13,6 +13,8 @@ int main()
 {
     aliasIndex = 0;
     envIndex = 0;
+    env_xpand = 0;
+    max_xpand = 1;
 
     getcwd(cwd, sizeof(cwd));
 
