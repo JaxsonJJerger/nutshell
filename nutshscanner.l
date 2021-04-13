@@ -141,8 +141,6 @@ char* strFindEnv(char *str){
 		*outstr = strdup(temp);
 
         memset(temp, 0, sizeof(temp));
-        free(envVar);
-        free(envWord);
 
         return;
 	}
@@ -190,8 +188,8 @@ pathName
                                             max_xpand = 0;
                                             env_xpand = 0;
                                             printf("env: %s\n", dupWord);
-                                            yylval.string = strdup(dupWord);
-                                            //return STRING;
+                                            // yylval.string = strdup(dupWord);
+                                            // return STRING;
                                             for ( int i = strlen(dupWord) - 1; i > 0; --i )
                                                 unput( dupWord[i] );
                                             free(dupWord);
@@ -278,14 +276,7 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             firstWord=false;
                             printf("yytext: %s\n", yytext);
                             yylval.string = strdup(yytext);
-                            if (max_xpand == 1)
-                            {
-                                return STRING;
-                            }
-                            else if (max_xpand == 0)
-                            {
-                                //return ENVX;
-                            }
+                            return STRING;
                         };
                     }
 {fileName}          {
