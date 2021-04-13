@@ -24,7 +24,7 @@ int runEnvXpand(char *var);
 
 %start cmd_line
 
-%token <string> BYE CD STRING ALIAS UNALIAS SETENV PRINTENV UNSETENV CMD END
+%token <string> BYE CD STRING ALIAS UNALIAS SETENV PRINTENV UNSETENV CMD ENV END
 
 %%
 cmd_line    :

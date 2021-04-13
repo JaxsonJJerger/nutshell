@@ -55,7 +55,12 @@ bool ifAlias(char* name){
 
 bool ifENV(char *var){
     for (int i = 0; i < envIndex; i++) {
+        // printf("%s\n", envTable.var[i]);
+
         if(strcmp(envTable.var[i], var) == 0) {
+
+            *dupWord = strdup(envTable.word[i]);
+            // printf("%s\n", *dupWord);
             return true;
         }
     }
@@ -108,19 +113,20 @@ char* strFindEnv(char *str){
 
 						if (ENDFOUND)
 						{
-							if(ifENV(envVar))
+							if(ifENV(envVar, &envWord))
 							{
-								strcat(temp, getENV(envVar));
+								strcat(temp, envWord);
 							}
 							else
 							{
-                                return strdup(str);
-								
+                                *outstr = strdup(str);
+								return;
 							}
 						}
 						else
 						{
-                            return strdup(str);
+                            *outstr = strdup(str);
+							return;
 						}
 					}
 				}
@@ -132,11 +138,18 @@ char* strFindEnv(char *str){
 			}
 		}
 		printf("StrXpand_parser: %s\n", temp);
-		return strdup(temp);
+		*outstr = strdup(temp);
+
+        memset(temp, 0, sizeof(temp));
+        free(envVar);
+        free(envWord);
+
+        return;
 	}
 	else
 	{
-		return strdup(str);
+		strcpy(*outstr,str);
+        return;
 	}
 }
 
@@ -159,61 +172,34 @@ fileName        [A-Za-z0-9\/_-][A-Za-z0-9\/_-]*"."[A-Za-z0-9\/_-][A-Za-z0-9\/_-]
 pathName
 
 %%
-<string_condition>{ANYCHAR}+    {
-                                    yylval.string = strdup(strFindEnv(yytext));
-                                    printf("yytext_str_c: %s\n", yylval.string);
-                                    if (cmdIndex <= 0)
-                                    {
-                                        return STRING;
-                                    }
-                                    else
-                                    {
-                                        struct Command *c = &p.cmd[p.cmdCounter];
-                                        c->args[c->aIndex] = strdup(yylval.string);
-
-                                        //printf("new arg: %s\n", c->args[c->aIndex]);
-
-                                        c->aIndex++;
-
-                                    }
+<string_condition>{ANYCHAR}+    {   char *outstr = strdup(yytext);
+                                    strFindEnv(yytext, &outstr);
+                                    yylval.string = strdup(outstr);
+                                    return STRING;
                                 }
 <string_condition>[\"]          {BEGIN(INITIAL);}
-<env_condition>{CHAR}+{ENVEND}? {
+<env_condition>{CHAR}+          {
                                     if (env_xpand && max_xpand) 
                                     {
-                                        
-                                        //printf("yytext_env_c: %s\n", yytext);
-                                        char *env;
-                                        if (yytext[yyleng-1] == '}'){
-                                            env = strndup(yytext, yyleng-1);
-                                        }
-                                        else
-                                        {
-                                            printf("${%s missing '}' for expansion...", yytext);
-                                            BEGIN(INITIAL);
-                                        }
+                                        printf("yytext: %s\n", yytext);
+
                                         // search table for variable
-                                        if(ifENV(env))
+                                        char *dupWord = strdup(yytext);
+                                        if(ifENV(yytext, &dupWord))
                                         {
                                             max_xpand = 0;
                                             env_xpand = 0;
-                                            char *yycopy = strdup( getENV(env) );
-                                            printf("%s=%s\n", env, yycopy);
-                                            // return STRING;
-                                            for ( int i = strlen( getENV(env) )-1; i >= 0; --i )
-                                            {
-                                                unput( yycopy[i] );
-                                            }
-                                            free(yycopy);
-                                            free(env);
-                                        }
-                                        else
-                                        {
-                                            env_xpand = 0;
+                                            printf("env: %s\n", dupWord);
+                                            yylval.string = strdup(dupWord);
+                                            //return STRING;
+                                            for ( int i = strlen(dupWord) - 1; i > 0; --i )
+                                                unput( dupWord[i] );
+                                            free(dupWord);
                                         }
                                     }
-                                    BEGIN(INITIAL);
                                 }
+<env_condition>{ENVEND}         { BEGIN(INITIAL); } // skip to next token setenv th "cd ${HOME}"
+
 
 [ ]		            { }
 bye                 { firstWord=false; return BYE; }
