@@ -11,19 +11,23 @@
 int yylex(void);
 int yyerror(char *s);
 int runCD(char* arg);
+int runAlias();
 int runSetAlias(char *name, char *word);
+int runUnalias(char *name);
 %}
 
 %union {char *string;}
 
 %start cmd_line
-%token <string> BYE CD STRING ALIAS END
+%token <string> BYE CD STRING ALIAS UNALIAS END
 
 %%
 cmd_line    :
 	BYE END 		                {exit(1); return 1; }
 	| CD STRING END        			{runCD($2); return 1;}
+	| ALIAS END						{runAlias(" "); return 1;}
 	| ALIAS STRING STRING END		{runSetAlias($2, $3); return 1;}
+	| UNALIAS STRING END			{runUnalias($2); return 1;}
 
 %%
 
@@ -59,6 +63,18 @@ int runCD(char* arg) {
 	}
 }
 
+int runAlias() {
+	if (aliasIndex > 0)
+	{
+		for (int i = 0; i < aliasIndex; i++)
+		{
+			printf("%s = %s\n", aliasTable.name[i], aliasTable.word[i]);
+		}
+	}
+
+	return 1;
+}
+
 int runSetAlias(char *name, char *word) {
 	for (int i = 0; i < aliasIndex; i++) {
 		if(strcmp(name, word) == 0){
@@ -77,6 +93,31 @@ int runSetAlias(char *name, char *word) {
 	strcpy(aliasTable.name[aliasIndex], name);
 	strcpy(aliasTable.word[aliasIndex], word);
 	aliasIndex++;
+
+	return 1;
+
+}
+
+int runUnalias(char *name) {
+	int newPos = 0;
+
+	if (aliasIndex < 0) { return 1; }
+
+	for(int i = 0; i < aliasIndex; ++i)
+	{
+		if(strcmp(aliasTable.name[i], name) == 0)
+		{
+			continue;
+		}
+		if (newPos != i) 
+		{
+			strcpy(aliasTable.name[newPos], aliasTable.name[i]);
+			strcpy(aliasTable.word[newPos], aliasTable.word[i]);
+		}
+		newPos++;
+	}
+
+	aliasIndex = newPos;
 
 	return 1;
 }

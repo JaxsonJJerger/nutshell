@@ -6,6 +6,9 @@
 #include <string.h>
 #include "global.h"
 
+int alias_xpand = 0;
+bool isUnalias = false;
+
 char* subAliases(char* name){
     for (int i = 0; i < aliasIndex; i++) {
         if(strcmp(aliasTable.name[i], name) == 0) {
@@ -39,20 +42,25 @@ ANYCHAR            [)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -][)(*&%$#@!`;,\.a-zA-Z0-9'/*_
 bye                 { return BYE; }
 cd		            { return CD;}
 alias		        { return ALIAS; }
+unalias             { isUnalias = true; return UNALIAS; }
 "\n"		        { return END; }
 [\"]                 { BEGIN(string_condition); }
-{CHAR}+              {if(ifAlias(yytext)) {
-                        printf("yytext: %s\n", yytext);
-                        //source: https://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.html
-                           char *yycopy = strdup( subAliases(yytext) );
-                           for ( int i = strlen(subAliases(yytext)) - 1; i >= 0; --i )
-                               unput( yycopy[i] );
-                           free( yycopy );
-                    } else {
-                        printf("yytext: %s\n", yytext);
-                        yylval.string = strdup(yytext);
-                        return STRING;
-                    };
+{CHAR}+              {if(ifAlias(yytext) && !isUnalias && alias_xpand == 0) {
+                            printf("ALIAS yytext: %s\n", yytext);
+                            yylval.string = strdup(yytext);
+                            return STRING;
+                        }
+                        else if (isUnalias) {
+                            printf("UNALIAS yytext: %s\n", yytext);
+                            yylval.string = strdup(yytext);
+                            isUnalias = false;
+                            return STRING;
+                        }
+                        else {
+                            printf("ELSE yytext: %s\n", yytext);
+                            yylval.string = strdup(yytext);
+                            return STRING;
+                        };
                      }
 %%
 // subroutines
