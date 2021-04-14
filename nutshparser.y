@@ -71,8 +71,10 @@ int runCD(char* arg) {
 		
     }
 	else if (arg[0] != '/') { // arg is relative path
+		int pwdlength = strlen(envTable.word[pwd]) - 1;
 
-		strcat(envTable.word[pwd], "/");
+		if (envTable.word[pwd][pwdlength] != '/')
+			strcat(envTable.word[pwd], "/");
 		strcat(envTable.word[pwd], arg);
 
 		if(chdir(envTable.word[pwd]) == 0) {
