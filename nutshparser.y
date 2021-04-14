@@ -161,7 +161,15 @@ int runSetenv(char *var, char *word) {
  columns of a row are cleared, no leftover chars after
  setting a new variable */
 int runUnsetenv(char *var) {
-
+	if (var == "HOME")
+		printf("ERROR: unsetting HOME could lead to unstability. Reversing action...\n");
+		return 0;
+	}
+	else if (var == "PATH")
+	{
+		printf("ERROR: unsetting PATH will break me. Please do not try again.\n");
+		return 0;
+	}
 	// don't waste time if index is 0
 	if (envIndex > 0)
 	{
