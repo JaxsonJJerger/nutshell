@@ -22,5 +22,6 @@ struct aTable aliasTable;
 int aliasIndex, envIndex, env_xpand, max_xpand;
 
 char* subAliases(char* name);
-void strFindEnv(char *str, char **outstr);
-bool ifENV(char *var, char **dupWord);
+char* strFindEnv(char *str);
+bool ifENV(char *var);
+char* getENV(char *var);

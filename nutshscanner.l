@@ -28,14 +28,9 @@ bool ifAlias(char* name){
     return false;
 }
 
-bool ifENV(char *var, char **dupWord){
+bool ifENV(char *var){
     for (int i = 0; i < envIndex; i++) {
-        // printf("%s\n", envTable.var[i]);
-
         if(strcmp(envTable.var[i], var) == 0) {
-
-            *dupWord = strdup(envTable.word[i]);
-            // printf("%s\n", *dupWord);
             return true;
         }
     }
@@ -43,8 +38,19 @@ bool ifENV(char *var, char **dupWord){
     return false;
 }
 
-void strFindEnv(char *str, char **outstr){
-    char temp[512];
+char* getENV(char *var){
+    for (int i = 0; i < envIndex; i++) {
+        // printf("%s\n", envTable.var[i]);
+
+        if(strcmp(envTable.var[i], var) == 0) {
+            return envTable.word[i];
+        }
+    }
+    return NULL;
+}
+
+char* strFindEnv(char *str){
+    char temp[512] = {};
 	char *envVar;
 	char *envWord;
 	bool ENDFOUND = false;
@@ -77,20 +83,19 @@ void strFindEnv(char *str, char **outstr){
 
 						if (ENDFOUND)
 						{
-							if(ifENV(envVar, &envWord))
+							if(ifENV(envVar))
 							{
-								strcat(temp, envWord);
+								strcat(temp, getENV(envVar));
 							}
 							else
 							{
-                                *outstr = strdup(str);
-								return;
+                                return strdup(str);
+								
 							}
 						}
 						else
 						{
-                            *outstr = strdup(str);
-							return;
+                            return strdup(str);
 						}
 					}
 				}
@@ -102,16 +107,11 @@ void strFindEnv(char *str, char **outstr){
 			}
 		}
 		printf("StrXpand_parser: %s\n", temp);
-		*outstr = strdup(temp);
-
-        memset(temp, 0, sizeof(temp));
-
-        return;
+		return strdup(temp);
 	}
 	else
 	{
-		strcpy(*outstr,str);
-        return;
+		return strdup(str);
 	}
 }
 
@@ -129,33 +129,48 @@ ENV             [$][{]
 ENVEND          [}]
 
 %%
-<string_condition>{ANYCHAR}+    {   char *outstr = strdup(yytext);
-                                    strFindEnv(yytext, &outstr);
-                                    yylval.string = strdup(outstr);
+<string_condition>{ANYCHAR}+    {
+                                    yylval.string = strdup(strFindEnv(yytext));
+                                    printf("yytext_str_c: %s\n", yylval.string);
                                     return STRING;
                                 }
 <string_condition>[\"]          {BEGIN(INITIAL);}
-<env_condition>{CHAR}+          {
+<env_condition>{CHAR}+{ENVEND}? {
                                     if (env_xpand && max_xpand) 
                                     {
-                                        printf("yytext: %s\n", yytext);
-
+                                        
+                                        //printf("yytext_env_c: %s\n", yytext);
+                                        char *env;
+                                        if (yytext[yyleng-1] == '}'){
+                                            env = strndup(yytext, yyleng-1);
+                                        }
+                                        else
+                                        {
+                                            printf("${%s missing '}' for expansion...", yytext);
+                                            BEGIN(INITIAL);
+                                        }
                                         // search table for variable
-                                        char *dupWord = strdup(yytext);
-                                        if(ifENV(yytext, &dupWord))
+                                        if(ifENV(env))
                                         {
                                             max_xpand = 0;
                                             env_xpand = 0;
-                                            printf("env: %s\n", dupWord);
-                                            // yylval.string = strdup(dupWord);
+                                            char *yycopy = strdup( getENV(env) );
+                                            printf("%s=%s\n", env, yycopy);
                                             // return STRING;
-                                            for ( int i = strlen(dupWord) - 1; i > 0; --i )
-                                                unput( dupWord[i] );
-                                            free(dupWord);
+                                            for ( int i = strlen( getENV(env) )-1; i >= 0; --i )
+                                            {
+                                                unput( yycopy[i] );
+                                            }
+                                            free(yycopy);
+                                            free(env);
+                                        }
+                                        else
+                                        {
+                                            env_xpand = 0;
                                         }
                                     }
+                                    BEGIN(INITIAL);
                                 }
-<env_condition>{ENVEND}         { BEGIN(INITIAL); } // skip to next token setenv th "cd ${HOME}"
 
 
 [ ]		            { }
@@ -183,6 +198,11 @@ unsetenv            { return UNSETENV; }
                         if (env_xpand != 1)
                         {
                             //sytax error
+                            unput('}');
+                        }
+                        else
+                        {
+                            env_xpand = 0;
                         }
                     }
 {CHAR}+             {if(ifAlias(yytext)) {
@@ -200,6 +220,4 @@ unsetenv            { return UNSETENV; }
                             return STRING;
                         };
                     }
-
 %%
-
