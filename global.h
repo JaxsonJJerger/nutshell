@@ -1,9 +1,11 @@
 #include "stdbool.h"
 #include <limits.h>
 
+#define maxCharsEV            100
+
 struct evTable {
-   char var[128][100];
-   char word[128][100];
+   char var[128][maxCharsEV];
+   char word[128][maxCharsEV];
 };
 
 struct aTable {
@@ -13,10 +15,13 @@ struct aTable {
 
 char cwd[PATH_MAX];
 
-struct evTable varTable;
+struct evTable envTable; // Environment Variable Table
 
 struct aTable aliasTable;
 
-int aliasIndex, varIndex;
+int aliasIndex, envIndex, env_xpand, max_xpand;
 
 char* subAliases(char* name);
+char* strFindEnv(char *str);
+bool ifENV(char *var);
+char* getENV(char *var);
