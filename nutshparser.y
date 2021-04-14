@@ -25,8 +25,8 @@ int runEnvXpand(char *var);
 
 %%
 cmd_line    :
-	BYE END 		                {exit(1); return 1;}
-	| CD END                        {runCD(" "); return 1;}
+	BYE END 		                {exit(1); return 1; }
+	| CD END						{runCD(" "); return 1; }
 	| CD STRING END        			{runCD($2); return 1;}
 	| ALIAS STRING STRING END		{runSetAlias($2, $3); return 1;}
 	| SETENV STRING STRING END		{runSetenv($2, $3); return 1;}
@@ -41,34 +41,78 @@ int yyerror(char *s) {
   }
 
 int runCD(char* arg) {
+	int pwd = -1;
+
+	// ensures that PWD is available for usage
+	for (int i = 0; i < envIndex; i++) {
+        if(strcmp(envTable.var[i], "PWD") == 0) {
+			pwd = i;
+        }
+    }
+
+	// if PWD is missing try to restore functionality and restart else fail
+	if (pwd == -1)
+	{
+		printf("ERROR: internal error, PWD is missing\n");
+		printf("Attempting to reinstate PWD (previous PWD will not be preserved)...");
+		if (getcwd(cwd, sizeof(cwd)))
+		{
+			if (runSetenv("PWD", cwd))
+			{
+				printf("Success!\n");
+				printf("Retrying cd command...\n");
+				return runCD(arg);
+			}
+		}
+
+		printf("Failed!\n");
+		printf("Shell may need restart.\n");
+		return -1;
+	}
+
 	if (arg[0] == ' ') { 
-		// no arg available
     	// move to home directory
-        
+
+		if (chdir(getENV("HOME")) == 0){
+			strcpy(envTable.word[pwd], getENV("HOME"));
+			return 1;
+		}
+		else
+		{
+			// only possible if corrupted table
+			printf("HOME directory not found.\n");
+			return -1;
+		}
+		
     }
 	else if (arg[0] != '/') { // arg is relative path
+		int pwdlength = strlen(envTable.word[pwd]) - 1;
 
-		strcat(envTable.word[0], "/");
-		strcat(envTable.word[0], arg);
+		// onyl adds '/' when missing
+		if (envTable.word[pwd][pwdlength] != '/')
+			strcat(envTable.word[pwd], "/");
+		
+		char *env = strdup(envTable.word[pwd]);
+		strcat(env, arg);
 
-		if(chdir(envTable.word[0]) == 0) {
+		if(chdir(env) == 0) {
+			strcat(envTable.word[pwd], arg);
 			return 1;
 		}
 		else {
 			getcwd(cwd, sizeof(cwd));
-			strcpy(envTable.word[0], cwd);
-			printf("Directory not found\n");
+			printf("'%s':No such file or directory\n", arg);
 			return 1;
 		}
 	}
 	else { // arg is absolute path
 		if(chdir(arg) == 0){
-			strcpy(envTable.word[0], arg);
+			strcpy(envTable.word[pwd], arg);
 			return 1;
 		}
 		else {
-			printf("Directory not found\n");
-                       	return 1;
+			printf("'%s':No such file or directory\n", arg);
+            return 1;
 		}
 	}
 }
