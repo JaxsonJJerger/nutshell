@@ -91,15 +91,17 @@ int runCD(char* arg) {
 		// onyl adds '/' when missing
 		if (envTable.word[pwd][pwdlength] != '/')
 			strcat(envTable.word[pwd], "/");
-		strcat(envTable.word[pwd], arg);
+		
+		char *env = strdup(envTable.word[pwd]);
+		strcat(env, arg);
 
-		if(chdir(envTable.word[pwd]) == 0) {
+		if(chdir(env) == 0) {
+			strcat(envTable.word[pwd], arg);
 			return 1;
 		}
 		else {
 			getcwd(cwd, sizeof(cwd));
-			strcpy(envTable.word[pwd], cwd);
-			printf("Directory not found\n");
+			printf("'%s':No such file or directory\n", arg);
 			return 1;
 		}
 	}
@@ -109,7 +111,7 @@ int runCD(char* arg) {
 			return 1;
 		}
 		else {
-			printf("Directory not found\n");
+			printf("'%s':No such file or directory\n", arg);
             return 1;
 		}
 	}
