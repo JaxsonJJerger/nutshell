@@ -162,6 +162,7 @@ int runSetenv(char *var, char *word) {
  setting a new variable */
 int runUnsetenv(char *var) {
 	if (var == "HOME")
+	{
 		printf("ERROR: unsetting HOME could lead to unstability. Reversing action...\n");
 		return 0;
 	}
