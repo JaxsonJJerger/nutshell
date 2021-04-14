@@ -41,38 +41,53 @@ int yyerror(char *s) {
   }
 
 int runCD(char* arg) {
+	int pwd = -1;
+
+	// ensures that PWD is available for usage
+	for (int i = 0; i < envIndex; i++) {
+        if(strcmp(envTable.var[i], "PWD") == 0) {
+			pwd = i;
+        }
+    }
+
+	if (pwd == -1)
+	{
+		printf("ERROR: INTERNAL ERROR, PWD NOT FOUND\n");
+		return 1;
+	}
+
 	if (arg[0] == ' ') { 
 		// no arg available
     	// move to home directory
-		if (chdir(varTable.word[1]) == 0){
-			strcpy(varTable.word[0], varTable.word[1]);
+		if (chdir(getENV("HOME")) == 0){
+			strcpy(envTable.word[pwd], getENV("HOME"));
 			return 1;
 		}
 		else
 		{
-			printf("HOME directory is not a directory");
-			return -1;
+			printf("HOME directory not found\n");
+			return 1;
 		}
 		
     }
 	else if (arg[0] != '/') { // arg is relative path
 
-		strcat(envTable.word[0], "/");
-		strcat(envTable.word[0], arg);
+		strcat(envTable.word[pwd], "/");
+		strcat(envTable.word[pwd], arg);
 
-		if(chdir(envTable.word[0]) == 0) {
+		if(chdir(envTable.word[pwd]) == 0) {
 			return 1;
 		}
 		else {
 			getcwd(cwd, sizeof(cwd));
-			strcpy(envTable.word[0], cwd);
+			strcpy(envTable.word[pwd], cwd);
 			printf("Directory not found\n");
 			return 1;
 		}
 	}
 	else { // arg is absolute path
 		if(chdir(arg) == 0){
-			strcpy(envTable.word[0], arg);
+			strcpy(envTable.word[pwd], arg);
 			return 1;
 		}
 		else {
