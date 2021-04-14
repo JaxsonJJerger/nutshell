@@ -34,7 +34,7 @@ int main()
     system("clear");
     while(1)
     {
-        printf("[%s]>> ", envTable.word[2]);
+        printf("[%s]>> ", getENV("PROMPT"));
         yyparse(); // yylex() routine to obtain a token from the input
         // check for tokens passed to yyparse()
     }

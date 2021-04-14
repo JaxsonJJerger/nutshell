@@ -50,29 +50,45 @@ int runCD(char* arg) {
         }
     }
 
+	// if PWD is missing try to restore functionality and restart else fail
 	if (pwd == -1)
 	{
-		printf("ERROR: INTERNAL ERROR, PWD NOT FOUND\n");
-		return 1;
+		printf("ERROR: internal error, PWD is missing\n");
+		printf("Attempting to reinstate PWD (previous PWD will not be preserved)...");
+		if (getcwd(cwd, sizeof(cwd)))
+		{
+			if (runSetenv("PWD", cwd))
+			{
+				printf("Success!\n");
+				printf("Retrying cd command...\n");
+				return runCD(arg);
+			}
+		}
+
+		printf("Failed!\n");
+		printf("Shell may need restart.\n");
+		return -1;
 	}
 
 	if (arg[0] == ' ') { 
-		// no arg available
     	// move to home directory
+
 		if (chdir(getENV("HOME")) == 0){
 			strcpy(envTable.word[pwd], getENV("HOME"));
 			return 1;
 		}
 		else
 		{
-			printf("HOME directory not found\n");
-			return 1;
+			// only possible if corrupted table
+			printf("HOME directory not found.\n");
+			return -1;
 		}
 		
     }
 	else if (arg[0] != '/') { // arg is relative path
 		int pwdlength = strlen(envTable.word[pwd]) - 1;
 
+		// onyl adds '/' when missing
 		if (envTable.word[pwd][pwdlength] != '/')
 			strcat(envTable.word[pwd], "/");
 		strcat(envTable.word[pwd], arg);
