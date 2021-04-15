@@ -11,6 +11,26 @@
 char *stringSaver;
 
 bool moreChars = false;
+bool firstWord = true;
+
+char* getCmdPath(char *cmd){
+    char *paths[] = {".","/fake/path","/bin","/usr/bin","/usr/local/bin"}; 
+    char *fullpath;
+    for (int i=0; i < 5; i++)
+    {
+        fullpath = strdup(paths[i]);
+        if (fullpath[strlen(fullpath)-1] != '/')
+        {
+            strcat(fullpath, "/");
+        }
+        strcat(fullpath, cmd);
+        if (access(fullpath, F_OK)==0){ // does path exist?
+            return fullpath;
+        }
+    }
+    return cmd;
+}
+
 char* subAliases(char* name){
     for (int i = 0; i < aliasIndex; i++) {
         if(strcmp(aliasTable.name[i], name) == 0) {
@@ -122,17 +142,35 @@ char* strFindEnv(char *str){
 %option noyywrap
 %x string_condition
 %x env_condition
+%x cmd_condition
 
 CHAR            [.A-Za-z0-9!\/_-][.A-Za-z0-9!\/_-]*
 ANYCHAR         [)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -][}{)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -]*
 ENV             [$][{]
 ENVEND          [}]
+PIPE            "|"
+RUNINBG         "&"
+fileName        [A-Za-z0-9\/_-][A-Za-z0-9\/_-]*"."[A-Za-z0-9\/_-][A-Za-z0-9\/_-]*
+
 
 %%
 <string_condition>{ANYCHAR}+    {
                                     yylval.string = strdup(strFindEnv(yytext));
                                     printf("yytext_str_c: %s\n", yylval.string);
-                                    return STRING;
+                                    if (cmdIndex <= 0)
+                                    {
+                                        return STRING;
+                                    }
+                                    else
+                                    {
+                                        struct Command *c = &p.cmd[p.cmdCounter];
+                                        c->args[c->aIndex] = strdup(yylval.string);
+
+                                        //printf("new arg: %s\n", c->args[c->aIndex]);
+
+                                        c->aIndex++;
+
+                                    }
                                 }
 <string_condition>[\"]          {BEGIN(INITIAL);}
 <env_condition>{CHAR}+{ENVEND}? {
@@ -174,15 +212,16 @@ ENVEND          [}]
 
 
 [ ]		            { }
-bye                 { return BYE; }
-cd		            { return CD; }
-alias		        { return ALIAS; }
-setenv              { return SETENV; moreChars = true; }
-printenv            { return PRINTENV; }
-unsetenv            { return UNSETENV; }
-"\n"		        { max_xpand = 1; return END; }
+bye                 { firstWord=false; return BYE; }
+cd		            { firstWord=false; return CD; }
+alias		        { firstWord=false; return ALIAS; }
+setenv              { firstWord=false; return SETENV; moreChars = true; }
+printenv            { firstWord=false; return PRINTENV; }
+unsetenv            { firstWord=false; return UNSETENV; }
+"\n"		        { firstWord=true; max_xpand = 1; return END; }
 [\"]                { BEGIN(string_condition); }
 {ENV}               { 
+                        firstWord=false;
                         // only finds env vars that are separate words
                         if (max_xpand > 0)
                         {
@@ -205,7 +244,10 @@ unsetenv            { return UNSETENV; }
                             env_xpand = 0;
                         }
                     }
-{CHAR}+             {if(ifAlias(yytext)) {
+{CHAR}+             {
+                        char *binPath;
+                        if(ifAlias(yytext)) {
+                            firstWord=false;
                             printf("yytext: %s\n", yytext);
                             //source: https://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.html
                             char *yycopy = strdup( subAliases(yytext) );
@@ -213,11 +255,59 @@ unsetenv            { return UNSETENV; }
                                 unput( yycopy[i] );
                             free( yycopy );
                         }
+                        else if ((access(binPath=strdup(getCmdPath(yytext)), X_OK) == 0) && firstWord)
+                        {   // can the file be executed? If yes, its a command
+                            //printf("found cmd: %s\n", binPath);
+                            firstWord=false;
+
+                            p.cmd[p.cmdCounter].cmd = strdup(binPath);
+                            initCmd(&p.cmd[p.cmdCounter]);
+                            cmdIndex++;
+                            
+                            if (cmdIndex == 1)
+                                return CMD;
+                        }
+                        else if (cmdIndex > 0)  // all command args here
+                        {
+                            struct Command *c = &p.cmd[p.cmdCounter];
+                            c->args[c->aIndex] = strdup(yytext);
+
+                            //printf("new arg: %s\n", c->args[c->aIndex]);
+
+                            c->aIndex++;
+                        }
                         else 
                         {
+                            firstWord=false;
                             printf("yytext: %s\n", yytext);
                             yylval.string = strdup(yytext);
                             return STRING;
                         };
                     }
+{fileName}          {
+                        if (cmdIndex > 0)
+                        {
+                            struct Command *c = &p.cmd[p.cmdCounter];
+                            c->args[c->aIndex] = strdup(yytext);
+
+                            //printf("new arg: %s\n", c->args[c->aIndex]);
+
+                            c->aIndex++;
+                        }
+                        else
+                        {
+                            firstWord=false;
+                            printf("yytext: %s\n", yytext);
+                            yylval.string = strdup(yytext);
+                            return STRING;
+                        }
+                    }
+{PIPE}              {
+                        p.bg = true;
+                        p.cmdCounter++;
+                        firstWord=true;
+                    }
+{RUNINBG}"\n"       { firstWord=true; p.bg = true; return END; }
 %%
+
+// todo: cmdform         cmd [arg]* [|cmd [arg]*]* [ >[>] fn2 ] [ 2>fn3 || 2>&1 ] [&]
