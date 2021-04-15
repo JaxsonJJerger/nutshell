@@ -69,14 +69,6 @@ int cmdRunner(){
 	resetCmdPipe(&p);
 	return 1;
 
-	// char *args[] = {binPath, getENV("PWD"), NULL};
-	// int child;
-	// int *status;
-	// if (child = fork() <= 0)
-	// {
-	// 	execv(binPath, args);
-	// }
-	// waitpid(child, status, -1);
 }
 
 int runCD(char* arg) {
