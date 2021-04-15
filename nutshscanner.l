@@ -14,9 +14,9 @@ bool moreChars = false;
 bool firstWord = true;
 
 char* getCmdPath(char *cmd){
-    char *paths[] = {".","/fake/path","/bin"};
+    char *paths[] = {".","/fake/path","/bin","/usr/bin","/usr/local/bin"}; 
     char *fullpath;
-    for (int i=0; i < 3; i++)
+    for (int i=0; i < 5; i++)
     {
         fullpath = strdup(paths[i]);
         if (fullpath[strlen(fullpath)-1] != '/')
@@ -150,6 +150,7 @@ ENV             [$][{]
 ENVEND          [}]
 PIPE            "|"
 RUNINBG         "&"
+fileName        [A-Za-z0-9\/_-][A-Za-z0-9\/_-]*"."[A-Za-z0-9\/_-][A-Za-z0-9\/_-]*
 
 
 %%
@@ -270,7 +271,26 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             return STRING;
                         };
                     }
+{fileName}          {
+                        if (cmdIndex > 0)
+                        {
+                            struct Command *c = &p.cmd[p.cmdCounter];
+                            c->args[c->aIndex] = strdup(yytext);
+
+                            //printf("new arg: %s\n", c->args[c->aIndex]);
+
+                            c->aIndex++;
+                        }
+                        else
+                        {
+                            firstWord=false;
+                            printf("yytext: %s\n", yytext);
+                            yylval.string = strdup(yytext);
+                            return STRING;
+                        }
+                    }
 {PIPE}              {
+                        p.bg = true;
                         p.cmdCounter++;
                         firstWord=true;
                     }
@@ -278,4 +298,3 @@ unsetenv            { firstWord=false; return UNSETENV; }
 %%
 
 // todo: cmdform         cmd [arg]* [|cmd [arg]*]* [ >[>] fn2 ] [ 2>fn3 || 2>&1 ] [&]
-// fileName        [A-Za-z0-9\/_-][A-Za-z0-9\/_-]*"."[A-Za-z0-9\/_-][A-Za-z0-9\/_-]*

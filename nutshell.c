@@ -25,7 +25,7 @@ void resetCmdPipe(struct Pipeline *p)
 {
     for (int i=0; i < p->cmdCounter; i++)
         resetCmd(&p->cmd[i]);
-    p->bg = 0;
+    p->bg = false;
     p->cmdCounter = 0;
 }
 
