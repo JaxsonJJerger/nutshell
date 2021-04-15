@@ -157,7 +157,20 @@ fileName        [A-Za-z0-9\/_-][A-Za-z0-9\/_-]*"."[A-Za-z0-9\/_-][A-Za-z0-9\/_-]
 <string_condition>{ANYCHAR}+    {
                                     yylval.string = strdup(strFindEnv(yytext));
                                     printf("yytext_str_c: %s\n", yylval.string);
-                                    return STRING;
+                                    if (cmdIndex <= 0)
+                                    {
+                                        return STRING;
+                                    }
+                                    else
+                                    {
+                                        struct Command *c = &p.cmd[p.cmdCounter];
+                                        c->args[c->aIndex] = strdup(yylval.string);
+
+                                        //printf("new arg: %s\n", c->args[c->aIndex]);
+
+                                        c->aIndex++;
+
+                                    }
                                 }
 <string_condition>[\"]          {BEGIN(INITIAL);}
 <env_condition>{CHAR}+{ENVEND}? {
