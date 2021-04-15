@@ -11,6 +11,7 @@
 char *stringSaver;
 
 bool moreChars = false;
+bool firstWord = true;
 
 char* getCmdPath(char *cmd){
     char *paths[] = {".","/fake/path","/bin"};
@@ -197,15 +198,16 @@ RUNINBG         "&"
 
 
 [ ]		            { }
-bye                 { return BYE; }
-cd		            { return CD; }
-alias		        { return ALIAS; }
-setenv              { return SETENV; moreChars = true; }
-printenv            { return PRINTENV; }
-unsetenv            { return UNSETENV; }
-"\n"		        { max_xpand = 1; return END; }
+bye                 { firstWord=false; return BYE; }
+cd		            { firstWord=false; return CD; }
+alias		        { firstWord=false; return ALIAS; }
+setenv              { firstWord=false; return SETENV; moreChars = true; }
+printenv            { firstWord=false; return PRINTENV; }
+unsetenv            { firstWord=false; return UNSETENV; }
+"\n"		        { firstWord=true; max_xpand = 1; return END; }
 [\"]                { BEGIN(string_condition); }
 {ENV}               { 
+                        firstWord=false;
                         // only finds env vars that are separate words
                         if (max_xpand > 0)
                         {
@@ -231,6 +233,7 @@ unsetenv            { return UNSETENV; }
 {CHAR}+             {
                         char *binPath;
                         if(ifAlias(yytext)) {
+                            firstWord=false;
                             printf("yytext: %s\n", yytext);
                             //source: https://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.html
                             char *yycopy = strdup( subAliases(yytext) );
@@ -238,9 +241,10 @@ unsetenv            { return UNSETENV; }
                                 unput( yycopy[i] );
                             free( yycopy );
                         }
-                        else if (access(binPath=strdup(getCmdPath(yytext)), X_OK) == 0)
+                        else if ((access(binPath=strdup(getCmdPath(yytext)), X_OK) == 0) && firstWord)
                         {   // can the file be executed? If yes, its a command
                             //printf("found cmd: %s\n", binPath);
+                            firstWord=false;
 
                             p.cmd[p.cmdCounter].cmd = strdup(binPath);
                             initCmd(&p.cmd[p.cmdCounter]);
@@ -260,6 +264,7 @@ unsetenv            { return UNSETENV; }
                         }
                         else 
                         {
+                            firstWord=false;
                             printf("yytext: %s\n", yytext);
                             yylval.string = strdup(yytext);
                             return STRING;
@@ -267,8 +272,9 @@ unsetenv            { return UNSETENV; }
                     }
 {PIPE}              {
                         p.cmdCounter++;
+                        firstWord=true;
                     }
-{RUNINBG}"\n"       { p.bg = true; return END; }
+{RUNINBG}"\n"       { firstWord=true; p.bg = true; return END; }
 %%
 
 // todo: cmdform         cmd [arg]* [|cmd [arg]*]* [ >[>] fn2 ] [ 2>fn3 || 2>&1 ] [&]
