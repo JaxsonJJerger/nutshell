@@ -4,7 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 #include "global.h"
-
+#include <sys/types.h>
+#include <pwd.h>
 
 void initCmd(struct Command *c)
 {
@@ -31,6 +32,11 @@ void resetCmdPipe(struct Pipeline *p)
 
 char *getcwd(char *buf, size_t size);
 int yyparse();
+
+/* struct passwd *pw = getpwuid(getuid());
+const char *homedir;
+char* HOME = "";
+char* PATH = "usr/bin";*/
 
 int main()
 {

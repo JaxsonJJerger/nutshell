@@ -11,7 +11,9 @@ int yylex(void);
 int yyerror(char *s);
 int cmdRunner();
 int runCD(char* arg);
+int runAlias();
 int runSetAlias(char *name, char *word);
+int runUnalias(char *name);
 int runSetenv(char *var, char *word);
 int printenvTable();
 int runUnsetenv(char *var);
@@ -21,14 +23,17 @@ int runEnvXpand(char *var);
 %union {char *string;}
 
 %start cmd_line
-%token <string> BYE CD STRING ALIAS SETENV PRINTENV UNSETENV CMD END
+
+%token <string> BYE CD STRING ALIAS UNALIAS SETENV PRINTENV UNSETENV CMD END
 
 %%
 cmd_line    :
 	BYE END 		                {exit(1); return 1; }
 	| CD END						{runCD(" "); return 1; }
 	| CD STRING END        			{runCD($2); return 1;}
+	| ALIAS END						{runAlias(" "); return 1;}
 	| ALIAS STRING STRING END		{runSetAlias($2, $3); return 1;}
+	| UNALIAS STRING END			{runUnalias($2); return 1;}
 	| SETENV STRING STRING END		{runSetenv($2, $3); return 1;}
 	| PRINTENV END					{printenvTable(); return 1;}
 	| UNSETENV STRING END			{runUnsetenv($2); return 1;}
@@ -148,24 +153,96 @@ int runCD(char* arg) {
 	}
 }
 
-int runSetAlias(char *name, char *word) {
-	for (int i = 0; i < aliasIndex; i++) {
-		if(strcmp(name, word) == 0){
-			printf("Error, expansion of \"%s\" would create a loop.\n", name);
-			return 1;
+bool recAliases(char* name, char* initial) {
+   	for (int i = 0; i < aliasIndex; i++) {
+		if((strcmp(aliasTable.name[i], name) == 0)) {
+			if((strcmp(aliasTable.word[i], initial) == 0)) {
+				return true;
+			}
+			return recAliases(aliasTable.word[i], initial);
 		}
-		else if((strcmp(aliasTable.name[i], name) == 0) && (strcmp(aliasTable.word[i], word) == 0)){
+   	}
+   	return false;
+}
+
+int runAlias() {
+	if (aliasIndex > 0)
+	{
+		for (int i = 0; i < aliasIndex; i++)
+		{
+			printf("%s = %s\n", aliasTable.name[i], aliasTable.word[i]);
+		}
+	}
+
+	return 1;
+}
+
+int runSetAlias(char *name, char *word) {
+	if(strcmp(name, word) == 0){
+		// alias a a
+		printf("Error, expansion of \"%s\" would create a loop.\n", name);
+		return 1;
+	}
+
+	for (int i = 0; i < aliasIndex; i++) {
+		if((strcmp(aliasTable.name[i], name) == 0) && (strcmp(aliasTable.word[i], word) == 0)){
+			// alias a b
+			// alias a b
 			printf("Error, expansion of \"%s\" would create a loop.\n", name);
 			return 1;
 		}
 		else if(strcmp(aliasTable.name[i], name) == 0) {
-			strcpy(aliasTable.word[i], word);
-			return 1;
+			// alias a b
+			// alias a c
+			if(!(recAliases(word, name)))
+			{
+				strcpy(aliasTable.word[i], word);
+				return 1;
+			}
+			else
+			{
+				printf("Error 1\n");
+				return -1;
+			}
 		}
 	}
-	strcpy(aliasTable.name[aliasIndex], name);
-	strcpy(aliasTable.word[aliasIndex], word);
-	aliasIndex++;
+
+	if(!(recAliases(word, name)))
+	{
+		strcpy(aliasTable.name[aliasIndex], name);
+		strcpy(aliasTable.word[aliasIndex], word);
+		aliasIndex++;
+		return 1;
+	}
+	else
+	{
+		printf("Error 2\n");
+		return -1;
+	}
+
+	return -1;
+}
+
+int runUnalias(char *name) {
+	int newPos = 0;
+
+	if (aliasIndex < 0) { return 1; }
+
+	for(int i = 0; i < aliasIndex; ++i)
+	{
+		if(strcmp(aliasTable.name[i], name) == 0)
+		{
+			continue;
+		}
+		if (newPos != i) 
+		{
+			strcpy(aliasTable.name[newPos], aliasTable.name[i]);
+			strcpy(aliasTable.word[newPos], aliasTable.word[i]);
+		}
+		newPos++;
+	}
+
+	aliasIndex = newPos;
 
 	return 1;
 }

@@ -4,6 +4,9 @@
 #include <string.h>
 #include "global.h"
 
+
+int alias_xpand = 0;
+bool isUnalias = false;
 // int *env_xpand = &envTable.env_xpand;
 // int *max_xpand = &envTable.max_xpand;
 // envTable.env_xpand = 0;
@@ -39,6 +42,7 @@ char* subAliases(char* name){
     }
     return name;
 }
+
 bool ifAlias(char* name){
     for (int i = 0; i < aliasIndex; i++) {
         if(strcmp(aliasTable.name[i], name) == 0) {
@@ -152,7 +156,6 @@ PIPE            "|"
 RUNINBG         "&"
 fileName        [A-Za-z0-9\/_-][A-Za-z0-9\/_-]*"."[A-Za-z0-9\/_-][A-Za-z0-9\/_-]*
 
-
 %%
 <string_condition>{ANYCHAR}+    {
                                     yylval.string = strdup(strFindEnv(yytext));
@@ -213,12 +216,13 @@ fileName        [A-Za-z0-9\/_-][A-Za-z0-9\/_-]*"."[A-Za-z0-9\/_-][A-Za-z0-9\/_-]
 
 [ ]		            { }
 bye                 { firstWord=false; return BYE; }
-cd		            { firstWord=false; return CD; }
-alias		        { firstWord=false; return ALIAS; }
+cd		              { firstWord=false; return CD; }
+alias		            { firstWord=false; alias_xpand++; return ALIAS; }
+unalias             { isUnalias = true; return UNALIAS; }
 setenv              { firstWord=false; return SETENV; moreChars = true; }
 printenv            { firstWord=false; return PRINTENV; }
 unsetenv            { firstWord=false; return UNSETENV; }
-"\n"		        { firstWord=true; max_xpand = 1; return END; }
+"\n"		            { firstWord=true; max_xpand = 1; return END; }
 [\"]                { BEGIN(string_condition); }
 {ENV}               { 
                         firstWord=false;
@@ -246,14 +250,20 @@ unsetenv            { firstWord=false; return UNSETENV; }
                     }
 {CHAR}+             {
                         char *binPath;
-                        if(ifAlias(yytext)) {
-                            firstWord=false;
-                            printf("yytext: %s\n", yytext);
-                            //source: https://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.html
-                            char *yycopy = strdup( subAliases(yytext) );
-                            for ( int i = strlen(subAliases(yytext)) - 1; i >= 0; --i )
-                                unput( yycopy[i] );
-                            free( yycopy );
+                        {if(ifAlias(yytext) && !isUnalias && alias_xpand == 0) {
+                            char *yycopy = strdup(subAliases(yytext));
+                            for(int i = strlen(subAliases(yytext)) - 1; i >= 0; --i)
+                            {
+                                unput(yycopy[i]);
+                            }
+                            free(yycopy);
+                            alias_xpand = 0;
+                        }
+                        else if (isUnalias) {
+                            printf("UNALIAS yytext: %s\n", yytext);
+                            yylval.string = strdup(yytext);
+                            isUnalias = false;
+                            return STRING;
                         }
                         else if ((access(binPath=strdup(getCmdPath(yytext)), X_OK) == 0) && firstWord)
                         {   // can the file be executed? If yes, its a command
