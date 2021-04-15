@@ -4,12 +4,12 @@
 // Only "alias name word", "cd word", and "bye" run.
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include "global.h"
 
 int yylex(void);
 int yyerror(char *s);
+int cmdRunner();
 int runCD(char* arg);
 int runSetAlias(char *name, char *word);
 int runSetenv(char *var, char *word);
@@ -21,7 +21,7 @@ int runEnvXpand(char *var);
 %union {char *string;}
 
 %start cmd_line
-%token <string> BYE CD STRING ALIAS SETENV PRINTENV UNSETENV ENVX END
+%token <string> BYE CD STRING ALIAS SETENV PRINTENV UNSETENV CMD END
 
 %%
 cmd_line    :
@@ -32,6 +32,7 @@ cmd_line    :
 	| SETENV STRING STRING END		{runSetenv($2, $3); return 1;}
 	| PRINTENV END					{printenvTable(); return 1;}
 	| UNSETENV STRING END			{runUnsetenv($2); return 1;}
+	| CMD END						{cmdRunner(); return 1;}
 
 %%
 
@@ -39,6 +40,44 @@ int yyerror(char *s) {
   printf("%s\n",s);
   return 0;
   }
+
+int cmdRunner(){
+	for (int i=0; i <= p.cmdCounter; i++)
+	{
+
+		//printf("cmd: %s\n", p.cmd[i].cmd);
+
+		struct Command *c = &p.cmd[i];
+		char *args[22] = {p.cmd[i].cmd};
+		int j;
+		for (j=0; j < c->aIndex; j++)
+		{
+			//printf("arg: %s\n", c->args[j]);
+			args[j+1] = c->args[j];
+		}
+		//args[j] = NULL;
+		
+		int child;
+		if (child = fork() <= 0)
+		{
+			execv(p.cmd[i].cmd, args);
+		}
+		resetCmd(&p.cmd[i]);
+	}
+
+	cmdIndex = 0;
+	resetCmdPipe(&p);
+	return 1;
+
+	// char *args[] = {binPath, getENV("PWD"), NULL};
+	// int child;
+	// int *status;
+	// if (child = fork() <= 0)
+	// {
+	// 	execv(binPath, args);
+	// }
+	// waitpid(child, status, -1);
+}
 
 int runCD(char* arg) {
 	int pwd = -1;

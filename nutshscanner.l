@@ -11,6 +11,25 @@
 char *stringSaver;
 
 bool moreChars = false;
+
+char* getCmdPath(char *cmd){
+    char *paths[] = {".","/fake/path","/bin"};
+    char *fullpath;
+    for (int i=0; i < 3; i++)
+    {
+        fullpath = strdup(paths[i]);
+        if (fullpath[strlen(fullpath)-1] != '/')
+        {
+            strcat(fullpath, "/");
+        }
+        strcat(fullpath, cmd);
+        if (access(fullpath, F_OK)==0){ // does path exist?
+            return fullpath;
+        }
+    }
+    return cmd;
+}
+
 char* subAliases(char* name){
     for (int i = 0; i < aliasIndex; i++) {
         if(strcmp(aliasTable.name[i], name) == 0) {
@@ -122,11 +141,15 @@ char* strFindEnv(char *str){
 %option noyywrap
 %x string_condition
 %x env_condition
+%x cmd_condition
 
 CHAR            [.A-Za-z0-9!\/_-][.A-Za-z0-9!\/_-]*
 ANYCHAR         [)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -][}{)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -]*
 ENV             [$][{]
 ENVEND          [}]
+PIPE            "|"
+RUNINBG         "&"
+
 
 %%
 <string_condition>{ANYCHAR}+    {
@@ -205,13 +228,35 @@ unsetenv            { return UNSETENV; }
                             env_xpand = 0;
                         }
                     }
-{CHAR}+             {if(ifAlias(yytext)) {
+{CHAR}+             {
+                        char *binPath;
+                        if(ifAlias(yytext)) {
                             printf("yytext: %s\n", yytext);
                             //source: https://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.html
                             char *yycopy = strdup( subAliases(yytext) );
                             for ( int i = strlen(subAliases(yytext)) - 1; i >= 0; --i )
                                 unput( yycopy[i] );
                             free( yycopy );
+                        }
+                        else if (access(binPath=strdup(getCmdPath(yytext)), X_OK) == 0)
+                        {   // can the file be executed? If yes, its a command
+                            //printf("found cmd: %s\n", binPath);
+
+                            p.cmd[p.cmdCounter].cmd = strdup(binPath);
+                            initCmd(&p.cmd[p.cmdCounter]);
+                            cmdIndex++;
+                            
+                            if (cmdIndex == 1)
+                                return CMD;
+                        }
+                        else if (cmdIndex > 0)  // all command args here
+                        {
+                            struct Command *c = &p.cmd[p.cmdCounter];
+                            c->args[c->aIndex] = strdup(yytext);
+
+                            //printf("new arg: %s\n", c->args[c->aIndex]);
+
+                            c->aIndex++;
                         }
                         else 
                         {
@@ -220,4 +265,11 @@ unsetenv            { return UNSETENV; }
                             return STRING;
                         };
                     }
+{PIPE}              {
+                        p.cmdCounter++;
+                    }
+{RUNINBG}"\n"       { p.bg = true; return END; }
 %%
+
+// todo: cmdform         cmd [arg]* [|cmd [arg]*]* [ >[>] fn2 ] [ 2>fn3 || 2>&1 ] [&]
+// fileName        [A-Za-z0-9\/_-][A-Za-z0-9\/_-]*"."[A-Za-z0-9\/_-][A-Za-z0-9\/_-]*
