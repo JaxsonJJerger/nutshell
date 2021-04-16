@@ -4,15 +4,13 @@
 #include <string.h>
 #include "global.h"
 
-
-int alias_xpand = 0;
-bool isUnalias = false;
 // int *env_xpand = &envTable.env_xpand;
 // int *max_xpand = &envTable.max_xpand;
 // envTable.env_xpand = 0;
 // envTable.max_xpand = 1;
 char *stringSaver;
-
+int alias_xpand = 0;
+bool isUnalias = false;
 bool moreChars = false;
 bool firstWord = true;
 
@@ -213,12 +211,11 @@ RUNINBG         "&"
                                     BEGIN(INITIAL);
                                 }
 
-
 [ ]		            { }
 bye                 { firstWord=false; return BYE; }
 cd		            { firstWord=false; return CD; }
 alias		        { firstWord=false; alias_xpand++; return ALIAS; }
-unalias             { isUnalias = true; firstWord=false; return UNALIAS; }
+unalias             { firstWord=false; isUnalias=true; return UNALIAS; }
 setenv              { firstWord=false; return SETENV; moreChars = true; }
 printenv            { firstWord=false; return PRINTENV; }
 unsetenv            { firstWord=false; return UNSETENV; }
@@ -302,8 +299,9 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         // we expect another command
                         p.cmdCounter++;
                         firstWord=true;
-                    }
+                    }                  
 {RUNINBG}"\n"       { firstWord=true; p.bg = true; return END; }
+
 %%
 
 // todo: cmdform         cmd [arg]* [|cmd [arg]*]* [ >[>] fn2 ] [ 2>fn3 || 2>&1 ] [&]
