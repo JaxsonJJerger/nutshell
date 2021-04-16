@@ -41,6 +41,21 @@ int addCmdArg(struct Command *c, char *toInsert)
     return 1;
 }
 
+int addCmdFile(char *toInsert)
+{
+    printf("io_bits:%i\n", p.io_bits);
+    if (p.io_bits & IO_in)
+        { p.ioFile[0] = strdup(toInsert); }
+    else if (p.io_bits & (IO_out | IO_outa))
+        { p.ioFile[1] = strdup(toInsert); }
+    else if (p.io_bits & IO_errf)
+        { p.ioFile[2] = strdup(toInsert); }
+    else
+        { return -1; }
+    
+    return 1;
+}
+
 char* subAliases(char* name){
     for (int i = 0; i < aliasIndex; i++) {
         if(strcmp(aliasTable.name[i], name) == 0) {
@@ -147,6 +162,11 @@ char* strFindEnv(char *str){
 }
 
 // %array option supposedly causes yytext to be immune to unput()
+// IO redirection help
+// RDRCTI           <      accept input from file
+// RDRCTO           >[>]   >truncate to zero and write OR >>append to file
+// RDRCTERF         2>     stderr to file "filename"
+// RDRCTERO         2>&1   redirects stderr to stdout
 %}
 
 %array
@@ -161,6 +181,10 @@ ENV             [$][{]
 ENVEND          [}]
 PIPE            "|"
 RUNINBG         "&"
+RDRCTI          "<"
+RDRCTO          ">"[>]*
+RDRCTERF        "2>"
+RDRCTERO        "2>&1"
 
 %%
 <string_condition>{ANYCHAR}+    {
@@ -283,7 +307,11 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         }
                         else if (cmdIndex > 0)  // all command args here
                         {
-                            addCmdArg(&p.cmd[p.cmdCounter], yytext);
+                            // if file redirection, save next arg as a file for I/O
+                            if (p.io_bits & (IO_errf|IO_outa|IO_out|IO_in))
+                                addCmdFile(yytext);
+                            else
+                                addCmdArg(&p.cmd[p.cmdCounter], yytext);
                             //printf("cmd_arg: %s\n", yytext);
                         }
                         else 
@@ -303,7 +331,27 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         p.cmdCounter++;
                         firstWord=true;
                     }
+{RDRCTI}            { if (cmdIndex > 0){ p.io_bits |= IO_in; } }
+{RDRCTO}            {   
+                        if (cmdIndex > 0)
+                        { 
+                            if (strcmp(yytext,">") == 0)
+                                p.io_bits |= IO_out; 
+                            else if (strcmp(yytext,">>") == 0)
+                                p.io_bits |= IO_outa;
+                            //printf("IO:%i\n", p.io_bits);
+                        } 
+                    }
+{RDRCTERF}          { if (cmdIndex > 0){ p.io_bits |= IO_errf; } }
+{RDRCTERO}          { if (cmdIndex > 0){ p.io_bits |= IO_errout; } }
 {RUNINBG}"\n"       { firstWord=true; p.bg = true; return END; }
 %%
+
+// IO redirection help
+// RDRCTI           <      accept input from file
+// RDRCTO           >[>]*  >truncate to zero and write OR >>append to file
+// RDRCTERF         2>     stderr to file "filename"
+// RDRCTERO         2>&1   redirects stderr to stdout
+
 
 // todo: cmdform         cmd [arg]* [|cmd [arg]*]* [ >[>] fn2 ] [ 2>fn3 || 2>&1 ] [&]
