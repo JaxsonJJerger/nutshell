@@ -19,18 +19,18 @@ struct aTable {
 
 struct Command
 {
-   int aIndex;
+   int aIndex; // ARRAY INDEX + 1
    char* cmd;
    char* in;
    char* out;
-   char* args[20];
+   char* args[50];
 };
 
 struct Pipeline
 {
    bool bg;
-   int cmdCounter;
-   struct Command cmd[20];
+   int cmdCounter;   // EQUIVALENT TO CMD ARRAY INDEX
+   struct Command cmd[50];
 };
 
 char cwd[PATH_MAX];
@@ -53,3 +53,4 @@ char* getENV(char *var);
 void initCmd(struct Command *c);
 void resetCmd(struct Command *c);
 void resetCmdPipe(struct Pipeline *p);
+int addCmdArg(struct Command *c, char *toInsert);

@@ -34,6 +34,13 @@ char* getCmdPath(char *cmd){
     return cmd;
 }
 
+int addCmdArg(struct Command *c, char *toInsert)
+{
+    c->args[c->aIndex] = strdup(toInsert);
+    c->aIndex++;
+    return 1;
+}
+
 char* subAliases(char* name){
     for (int i = 0; i < aliasIndex; i++) {
         if(strcmp(aliasTable.name[i], name) == 0) {
@@ -154,7 +161,6 @@ ENV             [$][{]
 ENVEND          [}]
 PIPE            "|"
 RUNINBG         "&"
-fileName        [A-Za-z0-9\/_-][A-Za-z0-9\/_-]*"."[A-Za-z0-9\/_-][A-Za-z0-9\/_-]*
 
 %%
 <string_condition>{ANYCHAR}+    {
@@ -166,13 +172,7 @@ fileName        [A-Za-z0-9\/_-][A-Za-z0-9\/_-]*"."[A-Za-z0-9\/_-][A-Za-z0-9\/_-]
                                     }
                                     else
                                     {
-                                        struct Command *c = &p.cmd[p.cmdCounter];
-                                        c->args[c->aIndex] = strdup(yylval.string);
-
-                                        //printf("new arg: %s\n", c->args[c->aIndex]);
-
-                                        c->aIndex++;
-
+                                        addCmdArg(&p.cmd[p.cmdCounter], yylval.string);
                                     }
                                 }
 <string_condition>[\"]          {BEGIN(INITIAL);}
@@ -248,7 +248,7 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             env_xpand = 0;
                         }
                     }
-{CHAR}+             {
+{CHAR}+             {   
                         char *binPath;
                         if(ifAlias(yytext) && !isUnalias && alias_xpand == 0) {
                             char *yycopy = strdup(subAliases(yytext));
@@ -273,18 +273,18 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             p.cmd[p.cmdCounter].cmd = strdup(binPath);
                             initCmd(&p.cmd[p.cmdCounter]);
                             cmdIndex++;
-                            
+                            // #### COMMAND ADDED ##### //
+
+                            // #### ADD COMMAND PATH TO ARGS #### //
+                            addCmdArg(&p.cmd[p.cmdCounter], binPath);
+
                             if (cmdIndex == 1)
                                 return CMD;
                         }
                         else if (cmdIndex > 0)  // all command args here
                         {
-                            struct Command *c = &p.cmd[p.cmdCounter];
-                            c->args[c->aIndex] = strdup(yytext);
-
-                            //printf("new arg: %s\n", c->args[c->aIndex]);
-
-                            c->aIndex++;
+                            addCmdArg(&p.cmd[p.cmdCounter], yytext);
+                            //printf("cmd_arg: %s\n", yytext);
                         }
                         else 
                         {
@@ -294,26 +294,12 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             return STRING;
                         };
                     }
-{fileName}          {
-                        if (cmdIndex > 0)
-                        {
-                            struct Command *c = &p.cmd[p.cmdCounter];
-                            c->args[c->aIndex] = strdup(yytext);
-
-                            //printf("new arg: %s\n", c->args[c->aIndex]);
-
-                            c->aIndex++;
-                        }
-                        else
-                        {
-                            firstWord=false;
-                            printf("yytext: %s\n", yytext);
-                            yylval.string = strdup(yytext);
-                            return STRING;
-                        }
-                    }
 {PIPE}              {
-                        p.bg = true;
+                        // add NULL character in case there are no args
+                        // besides the cmd path
+                        addCmdArg(&p.cmd[p.cmdCounter], NULL);
+
+                        // we expect another command
                         p.cmdCounter++;
                         firstWord=true;
                     }
