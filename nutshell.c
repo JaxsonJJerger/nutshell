@@ -14,20 +14,21 @@ void initCmd(struct Command *c)
 
 void resetCmd(struct Command *c)
 {
-    for (int i=0; i < c->aIndex; i++)
-        c->args[i] = NULL;
-    c->aIndex = 0;
-    c->cmd = NULL;
-    c->in = NULL;
-    c->out = NULL;
+    //for (int i=0; i < c->aIndex; i++)
+    memset(&c->args, 0, sizeof(c->args));
+    memset(&c->aIndex, 0, sizeof(c->aIndex));
+    memset(&c->cmd, 0, sizeof(c->cmd));
+    memset(&c->in, 0, sizeof(c->in));
+    memset(&c->out, 0, sizeof(c->out));
+
 }
 
 void resetCmdPipe(struct Pipeline *p)
 {
-    for (int i=0; i < p->cmdCounter; i++)
+    for (int i=0; i <= p->cmdCounter; i++)
         resetCmd(&p->cmd[i]);
     p->bg = false;
-    p->cmdCounter = 0;
+    memset(&p->cmdCounter, 0, sizeof(p->cmdCounter));
 }
 
 char *getcwd(char *buf, size_t size);
