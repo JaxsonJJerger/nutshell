@@ -216,13 +216,13 @@ RUNINBG         "&"
 
 [ ]		            { }
 bye                 { firstWord=false; return BYE; }
-cd		              { firstWord=false; return CD; }
-alias		            { firstWord=false; alias_xpand++; return ALIAS; }
-unalias             { isUnalias = true; return UNALIAS; }
+cd		            { firstWord=false; return CD; }
+alias		        { firstWord=false; alias_xpand++; return ALIAS; }
+unalias             { isUnalias = true; firstWord=false; return UNALIAS; }
 setenv              { firstWord=false; return SETENV; moreChars = true; }
 printenv            { firstWord=false; return PRINTENV; }
 unsetenv            { firstWord=false; return UNSETENV; }
-"\n"		            { firstWord=true; max_xpand = 1; return END; }
+"\n"		        { firstWord=true; max_xpand = 1; return END; }
 [\"]                { BEGIN(string_condition); }
 {ENV}               { 
                         firstWord=false;
