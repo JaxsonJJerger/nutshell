@@ -33,6 +33,17 @@ char* getCmdPath(char *cmd){
     return cmd;
 }
 
+const char* getHomeDir(){
+    for (int i = 0; i < envIndex; i++) {
+        if(strcmp(envTable.var[i], "HOME") == 0) {
+            homedir = getpwuid(getuid())->pw_dir;
+            return homedir;
+            // return envTable.word[i];
+        }
+    }
+    return NULL;
+}
+
 int addCmdArg(struct Command *c, char *toInsert)
 {
     c->args[c->aIndex] = strdup(toInsert);
@@ -154,8 +165,8 @@ char* strFindEnv(char *str){
 %x env_condition
 %x cmd_condition
 
-CHAR            [.A-Za-z0-9!\/_-][.A-Za-z0-9!\/_-]*
-ANYCHAR         [)(*&%$#@!`:;,\.a-zA-Z0-9'/*_=~ -][}{)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -]*
+CHAR            [.A-Za-z0-9!\/_-][.A-Za-z0-9!\/:_-]*
+ANYCHAR         [)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -][}{)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -]*
 ENV             [$][{]
 ENVEND          [}]
 PIPE            "|"
@@ -249,6 +260,11 @@ unsetenv            { firstWord=false; return UNSETENV; }
                     }
 {CHAR}+             {
                         char *binPath;
+
+                        if(yytext[0] == '~') {
+                            printf("TILDE FOUND IN CHAR+: %s", yytext); 
+                        }
+
                         if(ifAlias(yytext) && !isUnalias && alias_xpand == 0) {
                             char *yycopy = strdup(subAliases(yytext));
                             for(int i = strlen(subAliases(yytext)) - 1; i >= 0; --i)
@@ -301,6 +317,19 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         // we expect another command
                         p.cmdCounter++;
                         firstWord=true;
+                    }
+{TILDE}             {
+                        if(yytext[0] == '~') {
+                            printf("TILDE FOUND: %s\n", yytext);
+                            yylval.string = strdup(getHomeDir());
+                            printf("homedirfound: %s\n", homedir);
+                            return STRING;
+
+                            //char *yycopy = strdup(subAliases(yytext));
+                            //free(yycopy);
+                            // return STRING;
+                            // cwd = currently working directory or .
+                        }
                     }                  
 {RUNINBG}"\n"       { firstWord=true; p.bg = true; return END; }
 

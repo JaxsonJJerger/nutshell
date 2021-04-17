@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <pwd.h>
 
 #define maxCharsEV            100
 
@@ -33,6 +34,8 @@ struct Pipeline
    struct Command cmd[50];
 };
 
+// struct passwd *pw = getpwuid(getuid());
+
 char cwd[PATH_MAX];
 
 struct evTable envTable; // Environment Variable Table
@@ -46,6 +49,8 @@ char *cmdArgs[100];
 char *currPathTokens[100];
 
 int aliasIndex, envIndex, env_xpand, max_xpand, cmdIndex, pathIndex;
+
+const char *homedir;
 
 // int resetCurrPath(char[][]*);
 

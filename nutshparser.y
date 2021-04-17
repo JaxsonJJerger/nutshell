@@ -282,12 +282,25 @@ int runUnalias(char *name) {
 	return 1;
 }
 
-int parsePath(char* word, char* delim)
+int clearPathTokens(char *path)
+{
+	
+}
+
+int parsePath(char* path, char* delim)
 {
 	// check if path is empty, if not clear it
-	// ...
+	if(pathIndex == 0)
+	{
+		// continue
+	}
+	else
+	{
+		// clear path token array
+		// pathIndex = 0;
+	}
 
-	char* token = strtok(word, delim);
+	char* token = strtok(path, delim);
 
 	int i = 0;
 	while(token != NULL)
