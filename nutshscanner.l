@@ -45,7 +45,7 @@ int addCmdFile(char *toInsert)
 {
     // printf("io_bits:%i\n", p.io_bits);
     // printf("io_bits:%s\n", toInsert);
-    
+
     if ((p.io_bits & IO_in) && (p.ioFile[0] == NULL))
         { p.ioFile[0] = strdup(toInsert); }
     else if ((p.io_bits & (IO_out | IO_outa)) && (p.ioFile[1] == NULL))
@@ -310,13 +310,16 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             if (cmdIndex == 1)
                                 return CMD;
                         }
-                        else if (cmdIndex > 0)  // all command args here
+                        else if (p.io_bits & (IO_errf|IO_outa|IO_out|IO_in))
                         {
                             // if file redirection, save next arg as a file for I/O
-                            if (p.io_bits & (IO_errf|IO_outa|IO_out|IO_in))
-                                addCmdFile(yytext);
-                            else
-                                addCmdArg(&p.cmd[p.cmdCounter], yytext);
+                            
+                            addCmdFile(yytext);
+                        }
+                        else if (cmdIndex > 0)  // all command args here
+                        {
+                            
+                            addCmdArg(&p.cmd[p.cmdCounter], yytext);
                             //printf("cmd_arg: %s\n", yytext);
                         }
                         else 
@@ -338,7 +341,7 @@ unsetenv            { firstWord=false; return UNSETENV; }
                     }
 
 {RDRCTI}|{RDRCTO}|{RDRCTERF}|{RDRCTERO} {
-                        if (cmdIndex > 0)
+                        if (!firstWord)
                         { 
                             if (strcmp(yytext,"<") == 0)
                                 p.io_bits |= IO_in;
@@ -350,7 +353,8 @@ unsetenv            { firstWord=false; return UNSETENV; }
                                 p.io_bits |= IO_errf; 
                             else if (strcmp(yytext,"2>&1") == 0)
                                 p.io_bits |= IO_errout;
-                            printf("IO:%i\n", p.io_bits);
+                            
+                            //printf("IO:%i\n", p.io_bits);
 
                         } 
                     }

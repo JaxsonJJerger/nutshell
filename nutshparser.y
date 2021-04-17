@@ -78,9 +78,8 @@ int pipeliner(struct Pipeline *p, int cOut, int cIn){
 	close(pipeline[1]);
 }
 
-void execCmd(char *c, char *args[])
+void ioRedirect()
 {
-	int child;
 	if (p.io_bits & (IO_errout|IO_errf|IO_outa|IO_out|IO_in))
 	{
 		int fileIn, fileOut, fileErr;
@@ -118,30 +117,18 @@ void execCmd(char *c, char *args[])
 			
 			close(fileErr);
 		}
-
-		// run command
-		if (child = fork() <= 0)
-			execv(c, args);
-		else
-			wait(NULL);
 		
 		// for (int i = 0; i < 3; i++)
 	 	// 	printf("io_files: %s\n", p.ioFile[i]);
 	}
-	else 
-	{
-		if (child = fork() <= 0)
-			execv(c, args);
-		else
-			wait(NULL);
-	}
+
 	// 	if (!(strcmp(p.ioFile[i], NULL) == 0))
 
 }
 
 int cmdRunner(){
 	
-	int child;
+	int child, child2;
 	if (child = fork() <= 0)	//start in child process to avoid pipes crashing
 	{
 		
@@ -154,10 +141,22 @@ int cmdRunner(){
 			if (p.cmd[0].aIndex == 1) // no args available besides path
 			{
 				char *aRep[2] = {strdup(p.cmd[0].args[0]), 0};
-				execCmd(p.cmd[0].cmd, aRep);
+				ioRedirect();
+				if (child2 = fork() <= 0)
+					execv(p.cmd[0].cmd, p.cmd[0].args);
+				else
+					wait(NULL);
 			}
 			else
-				execCmd(p.cmd[0].cmd, p.cmd[0].args);
+			{
+
+				ioRedirect();
+				if (child2 = fork() <= 0)
+					execv(p.cmd[0].cmd, p.cmd[0].args);
+				else
+					wait(NULL);
+			}
+				
 		}
 		_exit(EXIT_FAILURE);
 	}
@@ -264,14 +263,27 @@ bool recAliases(char* name, char* initial) {
 }
 
 int runAlias() {
-	if (aliasIndex > 0)
+
+	int child;
+	if (child = fork() <= 0)
 	{
-		for (int i = 0; i < aliasIndex; i++)
+		ioRedirect();
+		if (aliasIndex > 0)
 		{
-			printf("%s = %s\n", aliasTable.name[i], aliasTable.word[i]);
+			for (int i = 0; i < aliasIndex; i++)
+			{
+				printf("%s = %s\n", aliasTable.name[i], aliasTable.word[i]);
+			}
 		}
+		exit(0);
+	}
+	else
+	{
+		wait(NULL);
 	}
 
+	cmdIndex = 0;
+	resetCmdPipe(&p);
 	return 1;
 }
 
@@ -449,18 +461,32 @@ int runUnsetenv(char *var) {
 // relies on the accuracy of envIndex to print
 int printenvTable() {
 
-	if (envIndex > 0)
+	int child;
+	if (child = fork() <= 0)
 	{
-		for (int i = 0; i < envIndex; i++)
+		ioRedirect();
+		if (envIndex > 0)
 		{
-			printf("%s=%s\n", envTable.var[i], envTable.word[i]);
+			for (int i = 0; i < envIndex; i++)
+			{
+				printf("%s=%s\n", envTable.var[i], envTable.word[i]);
+			}
 		}
+		else
+		{
+			printf("You have no environment variables...\n");
+			printf("To add some, use:\n\tsetenv [variable] [value]\n");
+		}
+		exit(0);
 	}
 	else
 	{
-		printf("You have no environment variables...\n");
-		printf("To add some, use:\n\tsetenv [variable] [value]\n");
+		wait(NULL);
 	}
+
+	cmdIndex = 0;
+	resetCmdPipe(&p);
+	return 1;
 }
 
 int runEnvXpand(char *var){
