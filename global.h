@@ -56,8 +56,10 @@ const char *homedir;
 
 char* subAliases(char* name);
 char* strFindEnv(char *str);
-bool ifENV(char *var);
 char* getENV(char *var);
+int runCD(char* arg);
+bool ifENV(char *var);
+
 
 void initCmd(struct Command *c);
 void resetCmd(struct Command *c);

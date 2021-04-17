@@ -10,7 +10,6 @@
 int yylex(void);
 int yyerror(char *s);
 int cmdRunner();
-int runCD(char* arg);
 int runAlias();
 int runSetAlias(char *name, char *word);
 int runUnalias(char *name);

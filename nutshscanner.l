@@ -34,12 +34,10 @@ const char* getHomeDir(){
     return homedir;
 }
  
-char* getParentDir(){
-    // char* test = "root/usr/bin/parent";
-    char* test = "/parent";
+char* getParentDir(char* path){
     char* substr;
     char slash = '/';
-    int length = strlen(test);
+    int length = strlen(path);
     int index = -1;
 
     // check if beginning == END
@@ -47,7 +45,7 @@ char* getParentDir(){
     // parse cwd for '/' in string that is not the END
     for(int i = 0; i <= length; i++)
     {
-        if(test[i] == slash)
+        if(path[i] == slash)
         {
             index = i;
         }
@@ -63,13 +61,15 @@ char* getParentDir(){
 	}
 
     // take substring of string up to the last /
-    int c = 0;
-    while(c < length) {
-        substr[c] = test[pos + c - 1];
-        c++;
+    for(int i = 0; i < pos; i++)
+    {
+        substr[i] = path[i];
     }
-    substr[c] = '\0';
+
     printf("Substring: \"%s\"\n", substr); // '\"' to print "
+    
+    // assign substring to pwd environment variable
+    runCD(substr);
 
   	return 0;
 }
@@ -293,7 +293,7 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         if(strcmp(yytext, "..") == 0) {
                             printf("PARENT\n");
                             // yycopy = strdup(getParentDir());
-                            getParentDir();
+                            getParentDir(yycopy);
                             // return STRING;
                         }
                         else if(strcmp(yytext, ".") == 0) {
