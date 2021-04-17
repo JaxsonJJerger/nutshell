@@ -85,7 +85,7 @@ bool ifENV(char *var){
             return true;
         }
     }
-    printf("Error: \"%s\" not found in environment table!\n", var);
+    fprintf(stderr, "Error: \"%s\" not found in environment table!\n", var);
     return false;
 }
 
@@ -157,7 +157,7 @@ char* strFindEnv(char *str){
 				strncat(temp, &str[i], 1);
 			}
 		}
-		printf("StrXpand_parser: %s\n", temp);
+		//printf("StrXpand_parser: %s\n", temp);
 		return strdup(temp);
 	}
 	else
@@ -190,11 +190,12 @@ RDRCTI          "<"
 RDRCTO          ">"[>]*
 RDRCTERF        "2>"
 RDRCTERO        "2>&1"
+CR              "\r"
 
 %%
 <string_condition>{ANYCHAR}+    {
                                     yylval.string = strdup(strFindEnv(yytext));
-                                    printf("yytext_str_c: %s\n", yylval.string);
+                                    //printf("yytext_str_c: %s\n", yylval.string);
                                     if (cmdIndex <= 0)
                                     {
                                         return STRING;
@@ -225,7 +226,7 @@ RDRCTERO        "2>&1"
                                             max_xpand = 0;
                                             env_xpand = 0;
                                             char *yycopy = strdup( getENV(env) );
-                                            printf("%s=%s\n", env, yycopy);
+                                            //printf("%s=%s\n", env, yycopy);
                                             // return STRING;
                                             for ( int i = strlen( getENV(env) )-1; i >= 0; --i )
                                             {
@@ -251,7 +252,7 @@ unalias             { isUnalias = true; firstWord=false; return UNALIAS; }
 setenv              { firstWord=false; return SETENV; moreChars = true; }
 printenv            { firstWord=false; return PRINTENV; }
 unsetenv            { firstWord=false; return UNSETENV; }
-"\n"		        { firstWord=true; max_xpand = 1; return END; }
+{CR}?"\n"		    { firstWord=true; max_xpand = 1; return END; }
 [\"]                { BEGIN(string_condition); }
 {ENV}               { 
                         firstWord=false;
@@ -289,7 +290,7 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             alias_xpand = 0;
                         }
                         else if (isUnalias) {
-                            printf("UNALIAS yytext: %s\n", yytext);
+                            //printf("UNALIAS yytext: %s\n", yytext);
                             yylval.string = strdup(yytext);
                             isUnalias = false;
                             return STRING;
@@ -312,9 +313,15 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         }
                         else if (p.io_bits & (IO_errf|IO_outa|IO_out|IO_in))
                         {
+                            char *file;
                             // if file redirection, save next arg as a file for I/O
-                            
-                            addCmdFile(yytext);
+                            if (access(yytext, F_OK) == 0)
+                                addCmdFile(yytext);
+                            else if (access(file = getCmdPath(yytext),F_OK) == 0)
+                                addCmdFile(file);
+                            else {
+
+                            }
                         }
                         else if (cmdIndex > 0)  // all command args here
                         {
@@ -325,7 +332,7 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         else 
                         {
                             firstWord=false;
-                            printf("yytext: %s\n", yytext);
+                            //printf("yytext: %s\n", yytext);
                             yylval.string = strdup(yytext);
                             return STRING;
                         };

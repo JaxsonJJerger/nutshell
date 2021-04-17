@@ -44,7 +44,7 @@ cmd_line    :
 %%
 
 int yyerror(char *s) {
-  printf("%s\n",s);
+  fprintf(stderr, "%s\n",s);
   return 0;
   }
 
@@ -205,8 +205,8 @@ int runCD(char* arg) {
 	// if PWD is missing try to restore functionality and restart else fail
 	if (pwd == -1)
 	{
-		printf("ERROR: internal error, PWD is missing\n");
-		printf("Attempting to reinstate PWD (previous PWD will not be preserved)...");
+		fprintf(stderr, "ERROR: internal error, PWD is missing\n");
+		fprintf(stderr, "Attempting to reinstate PWD (previous PWD will not be preserved)...");
 		if (getcwd(cwd, sizeof(cwd)))
 		{
 			if (runSetenv("PWD", cwd))
@@ -217,8 +217,8 @@ int runCD(char* arg) {
 			}
 		}
 
-		printf("Failed!\n");
-		printf("Shell may need restart.\n");
+		fprintf(stderr, "Failed!\n");
+		fprintf(stderr, "Shell may need restart.\n");
 		return -1;
 	}
 
@@ -232,7 +232,7 @@ int runCD(char* arg) {
 		else
 		{
 			// only possible if corrupted table
-			printf("HOME directory not found.\n");
+			fprintf(stderr, "HOME directory not found.\n");
 			return -1;
 		}
 		
@@ -253,7 +253,7 @@ int runCD(char* arg) {
 		}
 		else {
 			getcwd(cwd, sizeof(cwd));
-			printf("'%s':No such file or directory\n", arg);
+			fprintf(stderr, "'%s':No such file or directory\n", arg);
 			return 1;
 		}
 	}
@@ -263,7 +263,7 @@ int runCD(char* arg) {
 			return 1;
 		}
 		else {
-			printf("'%s':No such file or directory\n", arg);
+			fprintf(stderr, "'%s':No such file or directory\n", arg);
             return 1;
 		}
 	}
@@ -312,7 +312,7 @@ int runAlias() {
 int runSetAlias(char *name, char *word) {
 	if(strcmp(name, word) == 0){
 		// alias a a
-		printf("Error, expansion of \"%s\" would create a loop.\n", name);
+		fprintf(stderr, "Error, expansion of \"%s\" would create a loop.\n", name);
 		return 1;
 	}
 
@@ -320,7 +320,7 @@ int runSetAlias(char *name, char *word) {
 		if((strcmp(aliasTable.name[i], name) == 0) && (strcmp(aliasTable.word[i], word) == 0)){
 			// alias a b
 			// alias a b
-			printf("Error, expansion of \"%s\" would create a loop.\n", name);
+			fprintf(stderr, "Error, expansion of \"%s\" would create a loop.\n", name);
 			return 1;
 		}
 		else if(strcmp(aliasTable.name[i], name) == 0) {
@@ -333,7 +333,7 @@ int runSetAlias(char *name, char *word) {
 			}
 			else
 			{
-				printf("Error 1\n");
+				fprintf(stderr, "Error 1\n");
 				return -1;
 			}
 		}
@@ -348,7 +348,7 @@ int runSetAlias(char *name, char *word) {
 	}
 	else
 	{
-		printf("Error 2\n");
+		fprintf(stderr, "Error 2\n");
 		return -1;
 	}
 
@@ -399,7 +399,7 @@ int runSetenv(char *var, char *word) {
 	// check length of var/word string
 	if ((strlen(var) >= maxCharsEV) || (strlen(word) >= maxCharsEV))
 	{
-		printf("Error: var/word length should be <%d.\n", maxCharsEV);
+		fprintf(stderr, "Error: var/word length should be <%d.\n", maxCharsEV);
 		return -1;
 	}
 
@@ -425,7 +425,7 @@ int runSetenv(char *var, char *word) {
 		}
 		else
 		{
-			printf("Error: var size != word size. Internal error.");
+			fprintf(stderr,"Error: var size != word size. Internal error.");
 			return -1;
 		}
 	}
@@ -434,7 +434,7 @@ int runSetenv(char *var, char *word) {
 		char *fullTable = "You have too many environment variables,"
 							"consider unbinding some using:\n"
 							"\tunsetenv [variable] \n";
-		printf("%s", fullTable);
+		fprintf(stderr, "%s", fullTable);
 		return -1;
 	}
 
@@ -447,12 +447,12 @@ int runSetenv(char *var, char *word) {
 int runUnsetenv(char *var) {
 	if (var == "HOME")
 	{
-		printf("ERROR: unsetting HOME could lead to unstability. Reversing action...\n");
+		fprintf(stderr,"ERROR: unsetting HOME could lead to unstability. Reversing action...\n");
 		return 0;
 	}
 	else if (var == "PATH")
 	{
-		printf("ERROR: unsetting PATH will break me. Please do not try again.\n");
+		fprintf(stderr,"ERROR: unsetting PATH will break me. Please do not try again.\n");
 		return 0;
 	}
 	// don't waste time if index is 0
