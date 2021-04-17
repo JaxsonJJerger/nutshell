@@ -35,7 +35,8 @@ const char* getHomeDir(){
 }
  
 char* getParentDir(){
-    char* test = "root/usr/bin/parent";
+    // char* test = "root/usr/bin/parent";
+    char* test = "/parent";
     char* substr;
     char slash = '/';
     int length = strlen(test);
