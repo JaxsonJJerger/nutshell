@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "global.h"
 
 int yylex(void);
@@ -76,25 +78,86 @@ int pipeliner(struct Pipeline *p, int cOut, int cIn){
 	close(pipeline[1]);
 }
 
+void execCmd(char *c, char *args[])
+{
+	int child;
+	if (p.io_bits & (IO_errout|IO_errf|IO_outa|IO_out|IO_in))
+	{
+		int fileIn, fileOut, fileErr;
+		//int current_in;
+		
+		if(p.io_bits & IO_in)
+		{
+			fileIn = open(p.ioFile[0], O_RDONLY);
+			dup2(fileIn, STDIN_FILENO);
+			close(fileIn);
+			//current_in = dup(0);	// keeps current buffer
+		}
+		if(p.io_bits & (IO_out | IO_outa))
+		{
+			if (p.io_bits & IO_out)
+				fileOut = open(p.ioFile[1], O_WRONLY | O_TRUNC);
+			else if (p.io_bits & IO_outa)
+				fileOut = open(p.ioFile[1], O_WRONLY | O_APPEND);
+			
+			dup2(fileOut, STDOUT_FILENO);
+			close(fileOut);
+		}
+		if(p.io_bits & (IO_errf | IO_errout))
+		{
+			if (p.io_bits & IO_errf)		// should append to file
+			{	
+				fileErr = open(p.ioFile[2], O_WRONLY | O_APPEND);
+				dup2(fileErr, STDERR_FILENO);
+			}
+			else if (p.io_bits & IO_errout)  // should print err to screen
+			{
+				dup2(STDOUT_FILENO, STDERR_FILENO);
+				//current_outerr = dup(2);
+			}
+			
+			close(fileErr);
+		}
+
+		// run command
+		if (child = fork() <= 0)
+			execv(c, args);
+		else
+			wait(NULL);
+		
+		// for (int i = 0; i < 3; i++)
+	 	// 	printf("io_files: %s\n", p.ioFile[i]);
+	}
+	else 
+	{
+		if (child = fork() <= 0)
+			execv(c, args);
+		else
+			wait(NULL);
+	}
+	// 	if (!(strcmp(p.ioFile[i], NULL) == 0))
+
+}
+
 int cmdRunner(){
 	
 	int child;
 	if (child = fork() <= 0)	//start in child process to avoid pipes crashing
 	{
 		
-		if (cmdIndex > 1)	// number of cmds could be different than what we expect
+		if (cmdIndex > 1)	// number of cmds is more than 1
 		{
 			//printf("In the cmdRunner.\n");
 			pipeliner(&p, 0, 1);
 		}
 		else{
-			if (p.cmd[0].aIndex == 1)
+			if (p.cmd[0].aIndex == 1) // no args available besides path
 			{
 				char *aRep[2] = {strdup(p.cmd[0].args[0]), 0};
-				execv(p.cmd[0].cmd, aRep);
+				execCmd(p.cmd[0].cmd, aRep);
 			}
 			else
-				execv(p.cmd[0].cmd, p.cmd[0].args);
+				execCmd(p.cmd[0].cmd, p.cmd[0].args);
 		}
 		_exit(EXIT_FAILURE);
 	}

@@ -64,4 +64,5 @@ char* getENV(char *var);
 void initCmd(struct Command *c);
 void resetCmd(struct Command *c);
 void resetCmdPipe(struct Pipeline *p);
+char* getCmdPath(char *cmd);
 int addCmdArg(struct Command *c, char *toInsert);

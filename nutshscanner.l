@@ -43,16 +43,21 @@ int addCmdArg(struct Command *c, char *toInsert)
 
 int addCmdFile(char *toInsert)
 {
-    printf("io_bits:%i\n", p.io_bits);
-    if (p.io_bits & IO_in)
+    // printf("io_bits:%i\n", p.io_bits);
+    // printf("io_bits:%s\n", toInsert);
+    
+    if ((p.io_bits & IO_in) && (p.ioFile[0] == NULL))
         { p.ioFile[0] = strdup(toInsert); }
-    else if (p.io_bits & (IO_out | IO_outa))
+    else if ((p.io_bits & (IO_out | IO_outa)) && (p.ioFile[1] == NULL))
         { p.ioFile[1] = strdup(toInsert); }
-    else if (p.io_bits & IO_errf)
+    else if ((p.io_bits & IO_errf) && (p.ioFile[2] == NULL))
         { p.ioFile[2] = strdup(toInsert); }
     else
         { return -1; }
     
+    // for (int i = 0; i < 3; i++)
+	// 	printf("io_files: %s\n", p.ioFile[i]);
+
     return 1;
 }
 
@@ -331,19 +336,25 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         p.cmdCounter++;
                         firstWord=true;
                     }
-{RDRCTI}            { if (cmdIndex > 0){ p.io_bits |= IO_in; } }
-{RDRCTO}            {   
+
+{RDRCTI}|{RDRCTO}|{RDRCTERF}|{RDRCTERO} {
                         if (cmdIndex > 0)
                         { 
-                            if (strcmp(yytext,">") == 0)
+                            if (strcmp(yytext,"<") == 0)
+                                p.io_bits |= IO_in;
+                            else if (strcmp(yytext,">") == 0)
                                 p.io_bits |= IO_out; 
                             else if (strcmp(yytext,">>") == 0)
                                 p.io_bits |= IO_outa;
-                            //printf("IO:%i\n", p.io_bits);
+                            else if (strcmp(yytext,"2>") == 0)
+                                p.io_bits |= IO_errf; 
+                            else if (strcmp(yytext,"2>&1") == 0)
+                                p.io_bits |= IO_errout;
+                            printf("IO:%i\n", p.io_bits);
+
                         } 
                     }
-{RDRCTERF}          { if (cmdIndex > 0){ p.io_bits |= IO_errf; } }
-{RDRCTERO}          { if (cmdIndex > 0){ p.io_bits |= IO_errout; } }
+
 {RUNINBG}"\n"       { firstWord=true; p.bg = true; return END; }
 %%
 
