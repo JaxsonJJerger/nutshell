@@ -28,7 +28,7 @@ int runEnvXpand(char *var);
 
 %%
 cmd_line    :
-	BYE END 		                {exit(1); return 1; }
+	BYE END 		                {exit(1); return 1;}
 	| CD END						{runCD(" "); return 1; }
 	| CD STRING END        			{runCD($2); return 1;}
 	| ALIAS END						{runAlias(" "); return 1;}
@@ -282,6 +282,33 @@ int runUnalias(char *name) {
 	return 1;
 }
 
+int parsePath(char* word, char* delim)
+{
+	// check if path is empty, if not clear it
+	// ...
+
+	char* token = strtok(word, delim);
+
+	int i = 0;
+	while(token != NULL)
+	{
+		printf("token: %s\n", token);
+		
+		currPathTokens[i] = strdup(token);
+
+		token = strtok(NULL, delim);
+		pathIndex++;
+		i++;
+	}
+
+	for(int j = 0; j < pathIndex; j++)
+	{
+		printf("Parsed token = %s \n", currPathTokens[j]);
+	}
+
+	return 1;
+}
+
 /* todo (if required):
 	- check for embedded aliases
 		- if no known alias
@@ -309,10 +336,23 @@ int runSetenv(char *var, char *word) {
 	// search for existing environment variable name
 	// if yes, replace existing word and return
 	for (int i = 0; i < envIndex; i++) {
-
 		if(strcmp(envTable.var[i], var) == 0) 
 		{
+			// store path in envTable
 			strcpy(envTable.word[i], word);
+
+			if(strcmp(var, "PATH") == 0)
+			{
+				if(word[0] == '.')
+				{
+					parsePath(word, ":");
+				}
+				else 
+				{
+					printf("Error: path must begin with '.'\n");
+					return -1;
+				}
+			}
 			return 1;
 		}
 	}

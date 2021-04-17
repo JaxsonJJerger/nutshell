@@ -43,7 +43,11 @@ struct Pipeline p;
 
 char *cmdArgs[100];
 
-int aliasIndex, envIndex, env_xpand, max_xpand, cmdIndex;
+char *currPathTokens[100];
+
+int aliasIndex, envIndex, env_xpand, max_xpand, cmdIndex, pathIndex;
+
+// int resetCurrPath(char[][]*);
 
 char* subAliases(char* name);
 char* strFindEnv(char *str);

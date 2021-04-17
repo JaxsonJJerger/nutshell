@@ -43,12 +43,12 @@ int main()
 {
     aliasIndex = 0;
     envIndex = 0;
+    pathIndex = 0;
     env_xpand = 0;
     max_xpand = 1;
     cmdIndex = 0;
     p.cmdCounter = 0;
     p.bg = false;
-
 
     getcwd(cwd, sizeof(cwd));
 

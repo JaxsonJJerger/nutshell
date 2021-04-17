@@ -11,6 +11,7 @@
 char *stringSaver;
 int alias_xpand = 0;
 bool isUnalias = false;
+bool isPath = false;
 bool moreChars = false;
 bool firstWord = true;
 
@@ -154,11 +155,12 @@ char* strFindEnv(char *str){
 %x cmd_condition
 
 CHAR            [.A-Za-z0-9!\/_-][.A-Za-z0-9!\/_-]*
-ANYCHAR         [)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -][}{)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -]*
+ANYCHAR         [)(*&%$#@!`:;,\.a-zA-Z0-9'/*_=~ -][}{)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -]*
 ENV             [$][{]
 ENVEND          [}]
 PIPE            "|"
 RUNINBG         "&"
+TILDE           "~"{CHAR}+
 
 %%
 <string_condition>{ANYCHAR}+    {
@@ -245,7 +247,7 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             env_xpand = 0;
                         }
                     }
-{CHAR}+             {   
+{CHAR}+             {
                         char *binPath;
                         if(ifAlias(yytext) && !isUnalias && alias_xpand == 0) {
                             char *yycopy = strdup(subAliases(yytext));
