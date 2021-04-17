@@ -30,7 +30,7 @@ int runEnvXpand(char *var);
 
 %%
 cmd_line    :
-	BYE END 		                {exit(1); return 1; }
+	BYE END 		                {printf("\n"); exit(1); return 1; }
 	| CD END						{runCD(" "); return 1; }
 	| CD STRING END        			{runCD($2); return 1;}
 	| ALIAS END						{runAlias(" "); return 1;}
@@ -88,18 +88,19 @@ int pipeliner(struct Pipeline *p, int cOut, int cIn){
 	close(pipeline[1]);
 }
 
-void ioRedirect()
+void ioRedirect(char *cmd, char *args[])
 {
+	int child2;
+	int fileIn, fileOut, fileErr;
 	if (p.io_bits & (IO_errout|IO_errf|IO_outa|IO_out|IO_in))
 	{
-		int fileIn, fileOut, fileErr;
 		//int current_in;
 		
 		if(p.io_bits & IO_in)
 		{
 			fileIn = open(p.ioFile[0], O_RDONLY);
 			dup2(fileIn, STDIN_FILENO);
-			close(fileIn);
+			
 			//current_in = dup(0);	// keeps current buffer
 		}
 		if(p.io_bits & (IO_out | IO_outa))
@@ -110,7 +111,7 @@ void ioRedirect()
 				fileOut = open(p.ioFile[1], O_WRONLY | O_APPEND);
 			
 			dup2(fileOut, STDOUT_FILENO);
-			close(fileOut);
+			
 		}
 		if(p.io_bits & (IO_errf | IO_errout))
 		{
@@ -125,13 +126,21 @@ void ioRedirect()
 				//current_outerr = dup(2);
 			}
 			
-			close(fileErr);
+			
 		}
 		
 		// for (int i = 0; i < 3; i++)
 	 	// 	printf("io_files: %s\n", p.ioFile[i]);
 	}
 
+	if (child2 = fork() <= 0)
+		execv(cmd, args);
+	else
+		wait(NULL);
+		
+	close(fileIn);
+	close(fileOut);
+	close(fileErr);
 	// 	if (!(strcmp(p.ioFile[i], NULL) == 0))
 
 }
@@ -151,20 +160,20 @@ int cmdRunner(){
 			if (p.cmd[0].aIndex == 1) // no args available besides path
 			{
 				char *aRep[2] = {strdup(p.cmd[0].args[0]), 0};
-				ioRedirect();
-				if (child2 = fork() <= 0)
-					execv(p.cmd[0].cmd, p.cmd[0].args);
-				else
-					wait(NULL);
+				ioRedirect(p.cmd[0].cmd, p.cmd[0].args);
+				// if (child2 = fork() <= 0)
+				// 	execv(p.cmd[0].cmd, p.cmd[0].args);
+				// else
+				// 	wait(NULL);
 			}
 			else
 			{
 
-				ioRedirect();
-				if (child2 = fork() <= 0)
-					execv(p.cmd[0].cmd, p.cmd[0].args);
-				else
-					wait(NULL);
+				ioRedirect(p.cmd[0].cmd, p.cmd[0].args);
+				// if (child2 = fork() <= 0)
+				// 	execv(p.cmd[0].cmd, p.cmd[0].args);
+				// else
+				// 	wait(NULL);
 			}
 				
 		}
