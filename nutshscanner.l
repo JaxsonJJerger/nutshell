@@ -215,11 +215,7 @@ RUNINBG         "&"
 bye                 { firstWord=false; return BYE; }
 cd		            { firstWord=false; return CD; }
 alias		        { firstWord=false; alias_xpand++; return ALIAS; }
-<<<<<<< HEAD
-unalias             { firstWord=false; isUnalias=true; return UNALIAS; }
-=======
 unalias             { isUnalias = true; firstWord=false; return UNALIAS; }
->>>>>>> 5ef6fe590a3460434df7ddeb28b386a828482ad6
 setenv              { firstWord=false; return SETENV; moreChars = true; }
 printenv            { firstWord=false; return PRINTENV; }
 unsetenv            { firstWord=false; return UNSETENV; }
