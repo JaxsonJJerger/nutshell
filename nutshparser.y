@@ -281,22 +281,39 @@ int runUnalias(char *name) {
 	return 1;
 }
 
-int clearPathTokens(char *path)
+int clearPathTokens()
 {
+	printf("Clearing Path: \n");
+	for(int i = 0; i <= pathIndex; i++)
+	{
+		strcpy(currPathTokens[i], "\0");
+		pathIndex--;
+	}
 	
+	for (int j = 0; j < pathIndex; j++)
+	{
+		printf("'%s' has length %lu\n", currPathTokens[j], strlen(currPathTokens[j]));
+	}
+	printf("Current Path Index: %d\n\n", pathIndex);
+
+	return 1;
 }
 
 int parsePath(char* path, char* delim)
 {
+	printf("Parsing Path: \n");
 	// check if path is empty, if not clear it
-	if(pathIndex == 0)
-	{
-		// continue
-	}
-	else
+	if(pathIndex != 0)
 	{
 		// clear path token array
-		// pathIndex = 0;
+		printf("Current Path Index: %d. Path must be cleared first.\n", pathIndex);
+		clearPathTokens();
+	}
+
+	// remove first char '.' from path
+	if(path[0] == '.')
+	{
+		memmove(path, path+1, strlen(path));
 	}
 
 	char* token = strtok(path, delim);
@@ -304,19 +321,23 @@ int parsePath(char* path, char* delim)
 	int i = 0;
 	while(token != NULL)
 	{
-		printf("token: %s\n", token);
-		
-		currPathTokens[i] = strdup(token);
+		printf("Incoming token: %s\n", token);
+		if(strcmp(token, "."))
+		{
 
-		token = strtok(NULL, delim);
+		}
+		strcpy(currPathTokens[i], token);
 		pathIndex++;
 		i++;
+		token = strtok(NULL, delim);
 	}
+	i = 0; // reset i
 
-	for(int j = 0; j < pathIndex; j++)
+	for (int j = 0; j < pathIndex; j++)
 	{
-		printf("Parsed token = %s \n", currPathTokens[j]);
+		printf("'%s' has length %lu\n", currPathTokens[j], strlen(currPathTokens[j]));
 	}
+	printf("Current Path Index: %d\n\n", pathIndex);
 
 	return 1;
 }
@@ -353,17 +374,10 @@ int runSetenv(char *var, char *word) {
 			// store path in envTable
 			strcpy(envTable.word[i], word);
 
-			if(strcmp(var, "PATH") == 0)
+			// check if word is path
+			if(word[0] == '.') 
 			{
-				if(word[0] == '.')
-				{
-					parsePath(word, ":");
-				}
-				else 
-				{
-					printf("Error: path must begin with '.'\n");
-					return -1;
-				}
+				parsePath(word, ":");
 			}
 			return 1;
 		}

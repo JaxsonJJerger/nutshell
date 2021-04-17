@@ -313,11 +313,6 @@ unsetenv            { firstWord=false; return UNSETENV; }
                     }
 {CHAR}+             {
                         char *binPath;
-
-                        if(yytext[0] == '~') {
-                            printf("TILDE FOUND IN CHAR+: %s", yytext); 
-                        }
-
                         if(ifAlias(yytext) && !isUnalias && alias_xpand == 0) {
                             char *yycopy = strdup(subAliases(yytext));
                             for(int i = strlen(subAliases(yytext)) - 1; i >= 0; --i)

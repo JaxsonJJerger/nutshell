@@ -46,7 +46,7 @@ struct Pipeline p;
 
 char *cmdArgs[100];
 
-char *currPathTokens[100];
+char currPathTokens[128][100];
 
 int aliasIndex, envIndex, env_xpand, max_xpand, cmdIndex, pathIndex;
 
