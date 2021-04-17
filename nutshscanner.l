@@ -4,10 +4,6 @@
 #include <string.h>
 #include "global.h"
 
-// int *env_xpand = &envTable.env_xpand;
-// int *max_xpand = &envTable.max_xpand;
-// envTable.env_xpand = 0;
-// envTable.max_xpand = 1;
 char *stringSaver;
 int alias_xpand = 0;
 bool isUnalias = false;
@@ -34,14 +30,47 @@ char* getCmdPath(char *cmd){
 }
 
 const char* getHomeDir(){
-    for (int i = 0; i < envIndex; i++) {
-        if(strcmp(envTable.var[i], "HOME") == 0) {
-            homedir = getpwuid(getuid())->pw_dir;
-            return homedir;
-            // return envTable.word[i];
+    homedir = getpwuid(getuid())->pw_dir;
+    return homedir;
+}
+ 
+char* getParentDir(){
+    char* test = "root/usr/bin/parent";
+    char* substr;
+    char slash = '/';
+    int length = strlen(test);
+    int index = -1;
+
+    // check if beginning == END
+
+    // parse cwd for '/' in string that is not the END
+    for(int i = 0; i <= length; i++)
+    {
+        if(test[i] == slash)
+        {
+            index = i;
         }
     }
-    return NULL;
+    int pos = index + 1;
+    if(index == -1)
+  	{
+  		printf("\n Error: Element '%c' does not exist.\n", slash);
+	}
+	else
+	{
+		printf("\n The Last '%c' in the string is at position %d.\n", slash, pos);
+	}
+
+    // take substring of string up to the last /
+    int c = 0;
+    while(c < length) {
+        substr[c] = test[pos + c - 1];
+        c++;
+    }
+    substr[c] = '\0';
+    printf("Substring: \"%s\"\n", substr); // '\"' to print "
+
+  	return 0;
 }
 
 int addCmdArg(struct Command *c, char *toInsert)
@@ -165,13 +194,13 @@ char* strFindEnv(char *str){
 %x env_condition
 %x cmd_condition
 
+DOTTIL          "."|".."|"~"{CHAR}*
 CHAR            [.A-Za-z0-9!\/_-][.A-Za-z0-9!\/:_-]*
 ANYCHAR         [)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -][}{)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -]*
 ENV             [$][{]
 ENVEND          [}]
 PIPE            "|"
 RUNINBG         "&"
-TILDE           "~"{CHAR}+
 
 %%
 <string_condition>{ANYCHAR}+    {
@@ -258,6 +287,29 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             env_xpand = 0;
                         }
                     }
+{DOTTIL}            {
+                        char *yycopy = strdup(yytext);
+                        if(strcmp(yytext, "..") == 0) {
+                            printf("PARENT\n");
+                            // yycopy = strdup(getParentDir());
+                            getParentDir();
+                            // return STRING;
+                        }
+                        else if(strcmp(yytext, ".") == 0) {
+                            printf("CURRDIRR\n");
+                            yycopy = strdup(getcwd(cwd, sizeof(cwd)));
+                            printf("currdir found: %s\n", yycopy);
+                            // return STRING;
+                        }
+                        else if(strcmp(yytext, "~") == 0) {
+                            printf("TILDE\n");
+                            yycopy = strdup(getHomeDir());
+                            printf("homedir found: %s\n", homedir);
+                            // return STRING;
+                        }
+                        free(yycopy);
+                        return STRING;
+                    }
 {CHAR}+             {
                         char *binPath;
 
@@ -317,20 +369,8 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         // we expect another command
                         p.cmdCounter++;
                         firstWord=true;
-                    }
-{TILDE}             {
-                        if(yytext[0] == '~') {
-                            printf("TILDE FOUND: %s\n", yytext);
-                            yylval.string = strdup(getHomeDir());
-                            printf("homedirfound: %s\n", homedir);
-                            return STRING;
-
-                            //char *yycopy = strdup(subAliases(yytext));
-                            //free(yycopy);
-                            // return STRING;
-                            // cwd = currently working directory or .
-                        }
-                    }                  
+                    }               
+                
 {RUNINBG}"\n"       { firstWord=true; p.bg = true; return END; }
 
 %%
