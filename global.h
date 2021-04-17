@@ -3,8 +3,15 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <stdint.h>
+#include <stdio.h>
 
-#define maxCharsEV            100
+#define maxCharsEV               100
+#define IO_in                    (uint32_t)(1<<0)
+#define IO_out                   (uint32_t)(1<<1)
+#define IO_outa                  (uint32_t)(1<<2)
+#define IO_errf                  (uint32_t)(1<<3)
+#define IO_errout                (uint32_t)(1<<4)
 
 struct evTable {
    char var[128][maxCharsEV];
@@ -28,8 +35,12 @@ struct Command
 
 struct Pipeline
 {
+
+   unsigned int io_bits : 5;
+
    bool bg;
    int cmdCounter;   // EQUIVALENT TO CMD ARRAY INDEX
+   char* ioFile[3];
    struct Command cmd[50];
 };
 
@@ -53,4 +64,5 @@ char* getENV(char *var);
 void initCmd(struct Command *c);
 void resetCmd(struct Command *c);
 void resetCmdPipe(struct Pipeline *p);
+char* getCmdPath(char *cmd);
 int addCmdArg(struct Command *c, char *toInsert);

@@ -1,5 +1,4 @@
 // nutshell main file
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -28,6 +27,8 @@ void resetCmdPipe(struct Pipeline *p)
     for (int i=0; i <= p->cmdCounter; i++)
         resetCmd(&p->cmd[i]);
     p->bg = false;
+    memset(&p->ioFile, 0, sizeof(p->ioFile));
+    p->io_bits &= 0;
     memset(&p->cmdCounter, 0, sizeof(p->cmdCounter));
 }
 
@@ -48,6 +49,7 @@ int main()
     cmdIndex = 0;
     p.cmdCounter = 0;
     p.bg = false;
+    p.io_bits &= 0;
 
 
     getcwd(cwd, sizeof(cwd));
@@ -68,7 +70,8 @@ int main()
     system("clear");
     while(1)
     {
-        printf("[%s]>> ", getENV("PROMPT"));
+        fprintf(stdout,"[%s]>> ", getENV("PROMPT"));
+        fflush(stdout);
         yyparse(); // yylex() routine to obtain a token from the input
         // check for tokens passed to yyparse()
     }
