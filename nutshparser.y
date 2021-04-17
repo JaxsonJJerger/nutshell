@@ -48,6 +48,16 @@ int yyerror(char *s) {
   return 0;
   }
 
+int openFile(FILE **file){
+	if (p.io_bits & IO_out)
+		*file = fopen(p.ioFile[1], "w");
+	else if (p.io_bits & IO_outa)
+		*file = fopen(p.ioFile[1], "a");
+	else
+		*file = stdout;
+	return 1;
+}
+
 int pipeliner(struct Pipeline *p, int cOut, int cIn){
 	int pipeline[2], status, done=0;
 	pipe(pipeline);
@@ -265,16 +275,19 @@ bool recAliases(char* name, char* initial) {
 int runAlias() {
 
 	int child;
+	FILE *fileOut;
 	if (child = fork() <= 0)
 	{
-		ioRedirect();
+		openFile(&fileOut);
+
 		if (aliasIndex > 0)
 		{
 			for (int i = 0; i < aliasIndex; i++)
 			{
-				printf("%s = %s\n", aliasTable.name[i], aliasTable.word[i]);
+				fprintf(fileOut,"%s = %s\n", aliasTable.name[i], aliasTable.word[i]);
 			}
 		}
+		fclose(fileOut);
 		exit(0);
 	}
 	else
@@ -462,21 +475,33 @@ int runUnsetenv(char *var) {
 int printenvTable() {
 
 	int child;
+	FILE *fileOut;
 	if (child = fork() <= 0)
 	{
-		ioRedirect();
+		openFile(&fileOut);
+		
 		if (envIndex > 0)
 		{
 			for (int i = 0; i < envIndex; i++)
 			{
-				printf("%s=%s\n", envTable.var[i], envTable.word[i]);
+				fprintf(fileOut, "%s=%s\n", envTable.var[i], envTable.word[i]);
 			}
 		}
 		else
 		{
-			printf("You have no environment variables...\n");
-			printf("To add some, use:\n\tsetenv [variable] [value]\n");
+			if (p.io_bits & IO_errf)
+			{
+				fprintf(fileOut, "You have no environment variables...\n");
+				fprintf(fileOut, "To add some, use:\n\tsetenv [variable] [value]\n");
+			}
+			else
+			{
+				fprintf(stderr, "You have no environment variables...\n");
+				fprintf(stderr, "To add some, use:\n\tsetenv [variable] [value]\n");
+			}
 		}
+
+		fclose(fileOut);
 		exit(0);
 	}
 	else
