@@ -46,28 +46,63 @@ int yyerror(char *s) {
   return 0;
   }
 
-int cmdRunner(){
-	for (int i=0; i <= p.cmdCounter; i++)
+int pipeliner(struct Pipeline *p, int cOut, int cIn){
+	int pipeline[2], status, done=0;
+	pipe(pipeline);
+
+	pid_t procid;
+
+	procid = fork();
+	int i;
+	if(procid == 0) // child
 	{
+		i = 0;
 
-		//printf("cmd: %s\n", p.cmd[i].cmd);
+		dup2(pipeline[1], STDOUT_FILENO);
+		execv(p->cmd[cOut].cmd, p->cmd[cOut].args);
+		_exit(EXIT_FAILURE);
+	}
+	procid = fork();
+	if(procid == 0) // child
+	{
+		i = 1;
+		close(pipeline[1]);
 
-		struct Command *c = &p.cmd[i];
-		char *args[22] = {p.cmd[i].cmd};
-		int j;
-		for (j=0; j < c->aIndex; j++)
-		{
-			//printf("arg: %s\n", c->args[j]);
-			args[j+1] = c->args[j];
-		}
-		//args[j] = NULL;
+		dup2(pipeline[0], STDIN_FILENO);
+		execv(p->cmd[cIn].cmd, p->cmd[cIn].args);
+		_exit(EXIT_FAILURE);
+	}
+	close(pipeline[0]);
+	close(pipeline[1]);
+}
+
+int cmdRunner(){
+	
+	int child;
+	if (child = fork() <= 0)	//start in child process to avoid pipes crashing
+	{
 		
-		int child;
-		if (child = fork() <= 0)
+		if (cmdIndex > 1)	// number of cmds could be different than what we expect
 		{
-			execv(p.cmd[i].cmd, args);
+			//printf("In the cmdRunner.\n");
+			pipeliner(&p, 0, 1);
 		}
-		resetCmd(&p.cmd[i]);
+		else{
+			if (p.cmd[0].aIndex == 1)
+			{
+				char *aRep[2] = {strdup(p.cmd[0].args[0]), 0};
+				execv(p.cmd[0].cmd, aRep);
+			}
+			else
+				execv(p.cmd[0].cmd, p.cmd[0].args);
+		}
+		_exit(EXIT_FAILURE);
+	}
+	else
+	{
+		//printf("Parent process\n");
+		if (p.bg == false)
+			wait(NULL);
 	}
 
 	cmdIndex = 0;
