@@ -35,15 +35,17 @@ Jaxson Jerger's Contributions:
     #### Other Commands
     - cmd \[arg]\* \[|cmd \[arg]\*]\* \[< fn1] \[ >[>] fn2 ] \[ 2>fn3 || 2>&1 ] \[&]
       Implemented: I/O redirection works for all built-in commands as well as the non-built-in commands 'alias' and 'printenv'. Redirections can be used in combination with one another except those with exclusive or must be one or the other
-        <      accept input from file
 
-        >      truncate to zero and write
-        XOR
-        >>     append to file
+        \<      accept input from file
 
-        2>     stderr to file "filename"
+        \>      truncate to zero and write
         XOR
-        2>&1   redirects stderr to stdout
+        \>\>     append to file
+        
+        \2\>     stderr to file "filename"
+        XOR
+        \2\>\&1   redirects stderr to stdout
+        
       Not Implemented: Piping commands
     #### Aliases
     #### Environment Variable Expansion ${variable}
