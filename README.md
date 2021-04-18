@@ -1,6 +1,5 @@
 
-# nutshell
-## Term Project for OS Spring 2021
+# Term Project for OS Spring 2021
 
 ###Contributions
 
@@ -63,5 +62,6 @@ A command interpreter for a Korn shell-like command language in C using Lex and 
 
 ### Wildcard Matching
 	- not implemented
-
+### Tilde Expansion
+      - Expansion at the beginning of paths in which tilde is replaced with the home directory is implemented.
    
