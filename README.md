@@ -1,3 +1,4 @@
+
 # nutshell
 ## Term Project for OS Spring 2021
 
@@ -15,11 +16,14 @@ Jaxson Jerger's Contributions:
   - Environment variable expansions (separate word or withing quotes/strings)
   - Helped make alias expansion infinite-loop detection
       
+## The Nutshell
+A command interpreter for a Korn shell-like command language in C using Lex and Yacc running under Unix  consisting of simple commands, ~~pipes~~, I/O redirection, environment vars, aliases, pathname searching, and ~~wild-carding~~ , parses command lines and executes appropriate commands
 
-* creating a command interpreter for a Korn shell-like command language in C using Lex and Yacc running under Unix
-  * consists of simple commands, pipes, I/O redirection, environment vars, aliases, pathname searching, and wild-carding
-  * parses command lines and executes appropriate commands
-    ### Built-in commands 
+    
+
+## Built-in commands
+
+ 
     1. *setenv* \[variable] \[word] - sets an environment variable, usage ${variable}
     2. *printenv* - prints the environment variables,
     3. *unsetenv* \[variable] - removes an enviroment variable, HOME and PATH cannot be removed.
@@ -32,7 +36,10 @@ Jaxson Jerger's Contributions:
     10. *alias* - prints all aliases in storage.
     11. *bye* - when used alone will exit the shell gracefully
 
-    #### Other Commands
+ 
+
+## Other Commands
+
     - cmd \[arg]\* \[|cmd \[arg]\*]\* \[< fn1] \[ >[>] fn2 ] \[ 2>fn3 || 2>&1 ] \[&]
       Implemented: I/O redirection works for all built-in commands as well as the non-built-in commands 'alias' and 'printenv'. Redirections can be used in combination with one another except those with exclusive or must be one or the other
 
@@ -42,13 +49,19 @@ Jaxson Jerger's Contributions:
         XOR
         \>\>     append to file
         
-        \2\>     stderr to file "filename"
+        2\>     stderr to file "filename"
         XOR
-        \2\>\&1   redirects stderr to stdout
+        2\>\&1   redirects stderr to stdout
         
       Not Implemented: Piping commands
-    #### Aliases
-    #### Environment Variable Expansion ${variable}
+
+### Aliases
+
+### Environment Variable Expansion ${variable}
+
       - The shell will expand environment variables within ${}, no whitespace between, to their matching word/value, including while within quotations.
-    #### Wildcard Matching
+
+### Wildcard Matching
+	- not implemented
+
    
