@@ -391,41 +391,39 @@ const char* getCurrDir(){
 
 char* replaceInPath(const char* path, const char* oldChar, const char* newDir)
 {
-    int count = 0;
-    int newLength = strlen(newDir);
-    int oldLength = strlen(oldChar);
-  
     // count special characters in path
-	int i;
+    int dirLength = strlen(newDir);
+    int count = 0;
+    int i;
     for (i = 0; path[i] != '\0'; ++i) 
-	{
+    {
         if (strstr(&path[i], oldChar) == &path[i]) 
-		{
+        {
             count++;
-            i += oldLength - 1;
         }
     }
+
+    char* newPath = (char*)malloc(i + count * dirLength);
   
-    // make new string of dynamic length
-	char* newPath;
-    newPath = (char*)malloc(i + count * (newLength - oldLength) + 1);
-  
-	// compare strings
-    i = 0;
+    // compare strings
+    int j = 0;
     while (*path) {
-        if (strstr(path, oldChar) == path) {
-            strcpy(&newPath[i], newDir);
-            i += newLength;
-            path += oldLength;
+        if (strstr(path, oldChar) == path) 
+        {
+            strcpy(&newPath[j], newDir);
+            path++;
+            j += dirLength;
         }
         else
-            newPath[i++] = *path++;
+        {
+            newPath[j++] = *path++;
+        }
+            
     }
-  
-    newPath[i] = '\0';
+
+    newPath[j] = '\0';
     return newPath;
 }
-
 
 int clearPathTokens()
 {
@@ -511,13 +509,11 @@ int runSetenv(char *var, char *word) {
 			char buf[100];
 			strcpy(buf, temp);
 			const char* tempHome = strcat(buf, "/");			
-			char* tempTilde = replaceInPath(tempWord, "~", tempHome); // homedir
+			char* tempTilde = replaceInPath(tempWord, "~", tempHome);
 			char* newPath = replaceInPath(tempTilde, "//", "/");
 
 			// store path in envTable
 			strcpy(envTable.word[i], newPath);
-
-			// printf("pathReplaced: %s\n", tempTilde);
 
 			// check if word is path
 			if(word[0] == '.') 
