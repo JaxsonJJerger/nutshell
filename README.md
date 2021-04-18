@@ -3,8 +3,8 @@
 
 # Term Project for OS Spring 2021
 
-## HeadingContributions
-
+## Contributions
+#### (not reflected well in github metrics)
   
 
 Anthony Monteagudo fleshed out the alias functionality to handle unalias name, alias, alias name word, and alias error handling including loop prevention through recursion. Anthony was also responsible for PATH implementation, including PATH's special conventions such as the interpretations of paths as colon-seperated words that are then stored as tokens for easy accessibility such as being parsed to access nonbuiltin commands, and other such functionality. Anthony contributed to specific PATH handling to setenv commands. Furthermore tilde expansion such as the expansion that occurs at the beginning of each path word was handled by Anthony. Lastly, Anthony handled many of the special conventions regarding directories such as the aforementioned tilde, but also including cwd.
@@ -73,7 +73,7 @@ A command interpreter for a Korn shell-like command language in C using Lex and 
 
 - cmd \[arg]\* \[|cmd \[arg]\*]\* \[< fn1] \[ >[>] fn2 ] \[ 2>fn3 || 2>&1 ] \[&]
 
-Implemented: I/O redirection works for all built-in commands as well as the non-built-in commands 'alias' and 'printenv'. Redirections can be used in combination with one another except those with exclusive or must be one or the other
+Implemented: I/O redirection works for all built-in commands as well as the non-built-in commands 'alias' and 'printenv'. Redirections can be used in combination with one another except those with exclusive or must be one or the other. Built-in commands available are limited to PATH environment variable directories.
 
   
 

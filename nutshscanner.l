@@ -12,18 +12,19 @@ bool moreChars = false;
 bool firstWord = true;
 
 char* getCmdPath(char *cmd){
-    char *paths[] = {".","/fake/path","/bin","/usr/bin","/usr/local/bin"}; 
-    char *fullpath;
-    for (int i=0; i < 5; i++)
+    char *cmdPath;
+    for (int i=0; i < pathIndex; i++)
     {
-        fullpath = strdup(paths[i]);
-        if (fullpath[strlen(fullpath)-1] != '/')
+        cmdPath = strdup(currPathTokens[i]);
+        //printf("cmdPathCheck: %s\n", cmdPath);
+        if (cmdPath[strlen(cmdPath)-1] != '/')
         {
-            strcat(fullpath, "/");
+            strcat(cmdPath, "/");
         }
-        strcat(fullpath, cmd);
-        if (access(fullpath, F_OK)==0){ // does path exist?
-            return fullpath;
+        strcat(cmdPath, cmd);
+        //printf("cmdPathFull: %s\n", cmdPath);
+        if (access(cmdPath, F_OK)==0){ // does path exist?
+            return cmdPath;
         }
     }
     return cmd;
