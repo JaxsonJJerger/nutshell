@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "global.h"
 
 int yylex(void);
@@ -27,7 +29,7 @@ int runEnvXpand(char *var);
 
 %%
 cmd_line    :
-	BYE END 		                {exit(1); return 1;}
+	BYE END 		                {printf("\n"); exit(1); return 1; }
 	| CD END						{runCD(" "); return 1; }
 	| CD STRING END        			{runCD($2); return 1;}
 	| ALIAS END						{runAlias(" "); return 1;}
@@ -42,9 +44,19 @@ cmd_line    :
 %%
 
 int yyerror(char *s) {
-  printf("%s\n",s);
+  fprintf(stderr, "%s\n",s);
   return 0;
   }
+
+int openFile(FILE **file){
+	if (p.io_bits & IO_out)
+		*file = fopen(p.ioFile[1], "w");
+	else if (p.io_bits & IO_outa)
+		*file = fopen(p.ioFile[1], "a");
+	else
+		*file = stdout;
+	return 1;
+}
 
 int pipeliner(struct Pipeline *p, int cOut, int cIn){
 	int pipeline[2], status, done=0;
@@ -76,25 +88,94 @@ int pipeliner(struct Pipeline *p, int cOut, int cIn){
 	close(pipeline[1]);
 }
 
+void ioRedirect(char *cmd, char *args[])
+{
+	int child2;
+	int fileIn, fileOut, fileErr;
+	if (p.io_bits & (IO_errout|IO_errf|IO_outa|IO_out|IO_in))
+	{
+		//int current_in;
+		
+		if(p.io_bits & IO_in)
+		{
+			fileIn = open(p.ioFile[0], O_RDONLY);
+			dup2(fileIn, STDIN_FILENO);
+			
+			//current_in = dup(0);	// keeps current buffer
+		}
+		if(p.io_bits & (IO_out | IO_outa))
+		{
+			if (p.io_bits & IO_out)
+				fileOut = open(p.ioFile[1], O_WRONLY | O_TRUNC);
+			else if (p.io_bits & IO_outa)
+				fileOut = open(p.ioFile[1], O_WRONLY | O_APPEND);
+			
+			dup2(fileOut, STDOUT_FILENO);
+			
+		}
+		if(p.io_bits & (IO_errf | IO_errout))
+		{
+			if (p.io_bits & IO_errf)		// should append to file
+			{	
+				fileErr = open(p.ioFile[2], O_WRONLY | O_APPEND);
+				dup2(fileErr, STDERR_FILENO);
+			}
+			else if (p.io_bits & IO_errout)  // should print err to screen
+			{
+				dup2(STDOUT_FILENO, STDERR_FILENO);
+				//current_outerr = dup(2);
+			}
+			
+			
+		}
+		
+		// for (int i = 0; i < 3; i++)
+	 	// 	printf("io_files: %s\n", p.ioFile[i]);
+	}
+
+	if (child2 = fork() <= 0)
+		execv(cmd, args);
+	else
+		wait(NULL);
+		
+	close(fileIn);
+	close(fileOut);
+	close(fileErr);
+	// 	if (!(strcmp(p.ioFile[i], NULL) == 0))
+
+}
+
 int cmdRunner(){
 	
-	int child;
+	int child, child2;
 	if (child = fork() <= 0)	//start in child process to avoid pipes crashing
 	{
 		
-		if (cmdIndex > 1)	// number of cmds could be different than what we expect
+		if (cmdIndex > 1)	// number of cmds is more than 1
 		{
 			//printf("In the cmdRunner.\n");
 			pipeliner(&p, 0, 1);
 		}
 		else{
-			if (p.cmd[0].aIndex == 1)
+			if (p.cmd[0].aIndex == 1) // no args available besides path
 			{
 				char *aRep[2] = {strdup(p.cmd[0].args[0]), 0};
-				execv(p.cmd[0].cmd, aRep);
+				ioRedirect(p.cmd[0].cmd, p.cmd[0].args);
+				// if (child2 = fork() <= 0)
+				// 	execv(p.cmd[0].cmd, p.cmd[0].args);
+				// else
+				// 	wait(NULL);
 			}
 			else
-				execv(p.cmd[0].cmd, p.cmd[0].args);
+			{
+
+				ioRedirect(p.cmd[0].cmd, p.cmd[0].args);
+				// if (child2 = fork() <= 0)
+				// 	execv(p.cmd[0].cmd, p.cmd[0].args);
+				// else
+				// 	wait(NULL);
+			}
+				
 		}
 		_exit(EXIT_FAILURE);
 	}
@@ -124,8 +205,8 @@ int runCD(char* arg) {
 	// if PWD is missing try to restore functionality and restart else fail
 	if (pwd == -1)
 	{
-		printf("ERROR: internal error, PWD is missing\n");
-		printf("Attempting to reinstate PWD (previous PWD will not be preserved)...");
+		fprintf(stderr, "ERROR: internal error, PWD is missing\n");
+		fprintf(stderr, "Attempting to reinstate PWD (previous PWD will not be preserved)...");
 		if (getcwd(cwd, sizeof(cwd)))
 		{
 			if (runSetenv("PWD", cwd))
@@ -136,8 +217,8 @@ int runCD(char* arg) {
 			}
 		}
 
-		printf("Failed!\n");
-		printf("Shell may need restart.\n");
+		fprintf(stderr, "Failed!\n");
+		fprintf(stderr, "Shell may need restart.\n");
 		return -1;
 	}
 
@@ -151,7 +232,7 @@ int runCD(char* arg) {
 		else
 		{
 			// only possible if corrupted table
-			printf("HOME directory not found.\n");
+			fprintf(stderr, "HOME directory not found.\n");
 			return -1;
 		}
 		
@@ -172,7 +253,7 @@ int runCD(char* arg) {
 		}
 		else {
 			getcwd(cwd, sizeof(cwd));
-			printf("'%s':No such file or directory\n", arg);
+			fprintf(stderr, "'%s':No such file or directory\n", arg);
 			return 1;
 		}
 	}
@@ -182,7 +263,7 @@ int runCD(char* arg) {
 			return 1;
 		}
 		else {
-			printf("'%s':No such file or directory\n", arg);
+			fprintf(stderr, "'%s':No such file or directory\n", arg);
             return 1;
 		}
 	}
@@ -201,21 +282,37 @@ bool recAliases(char* name, char* initial) {
 }
 
 int runAlias() {
-	if (aliasIndex > 0)
+
+	int child;
+	FILE *fileOut;
+	if (child = fork() <= 0)
 	{
-		for (int i = 0; i < aliasIndex; i++)
+		openFile(&fileOut);
+
+		if (aliasIndex > 0)
 		{
-			printf("%s = %s\n", aliasTable.name[i], aliasTable.word[i]);
+			for (int i = 0; i < aliasIndex; i++)
+			{
+				fprintf(fileOut,"%s = %s\n", aliasTable.name[i], aliasTable.word[i]);
+			}
 		}
+		fclose(fileOut);
+		exit(0);
+	}
+	else
+	{
+		wait(NULL);
 	}
 
+	cmdIndex = 0;
+	resetCmdPipe(&p);
 	return 1;
 }
 
 int runSetAlias(char *name, char *word) {
 	if(strcmp(name, word) == 0){
 		// alias a a
-		printf("Error, expansion of \"%s\" would create a loop.\n", name);
+		fprintf(stderr, "Error, expansion of \"%s\" would create a loop.\n", name);
 		return 1;
 	}
 
@@ -223,7 +320,7 @@ int runSetAlias(char *name, char *word) {
 		if((strcmp(aliasTable.name[i], name) == 0) && (strcmp(aliasTable.word[i], word) == 0)){
 			// alias a b
 			// alias a b
-			printf("Error, expansion of \"%s\" would create a loop.\n", name);
+			fprintf(stderr, "Error, expansion of \"%s\" would create a loop.\n", name);
 			return 1;
 		}
 		else if(strcmp(aliasTable.name[i], name) == 0) {
@@ -236,7 +333,7 @@ int runSetAlias(char *name, char *word) {
 			}
 			else
 			{
-				printf("Error 1\n");
+				fprintf(stderr, "Error 1\n");
 				return -1;
 			}
 		}
@@ -251,7 +348,7 @@ int runSetAlias(char *name, char *word) {
 	}
 	else
 	{
-		printf("Error 2\n");
+		fprintf(stderr, "Error 2\n");
 		return -1;
 	}
 
@@ -411,7 +508,7 @@ int runSetenv(char *var, char *word) {
 	// check length of var/word string
 	if ((strlen(var) >= maxCharsEV) || (strlen(word) >= maxCharsEV))
 	{
-		printf("Error: var/word length should be <%d.\n", maxCharsEV);
+		fprintf(stderr, "Error: var/word length should be <%d.\n", maxCharsEV);
 		return -1;
 	}
 
@@ -461,7 +558,7 @@ int runSetenv(char *var, char *word) {
 		}
 		else
 		{
-			printf("Error: var size != word size. Internal error.");
+			fprintf(stderr,"Error: var size != word size. Internal error.");
 			return -1;
 		}
 	}
@@ -470,7 +567,7 @@ int runSetenv(char *var, char *word) {
 		char *fullTable = "You have too many environment variables,"
 							"consider unbinding some using:\n"
 							"\tunsetenv [variable] \n";
-		printf("%s", fullTable);
+		fprintf(stderr, "%s", fullTable);
 		return -1;
 	}
 
@@ -483,12 +580,12 @@ int runSetenv(char *var, char *word) {
 int runUnsetenv(char *var) {
 	if (var == "HOME")
 	{
-		printf("ERROR: unsetting HOME could lead to unstability. Reversing action...\n");
+		fprintf(stderr,"ERROR: unsetting HOME could lead to unstability. Reversing action...\n");
 		return 0;
 	}
 	else if (var == "PATH")
 	{
-		printf("ERROR: unsetting PATH will break me. Please do not try again.\n");
+		fprintf(stderr,"ERROR: unsetting PATH will break me. Please do not try again.\n");
 		return 0;
 	}
 	// don't waste time if index is 0
@@ -519,18 +616,44 @@ int runUnsetenv(char *var) {
 // relies on the accuracy of envIndex to print
 int printenvTable() {
 
-	if (envIndex > 0)
+	int child;
+	FILE *fileOut;
+	if (child = fork() <= 0)
 	{
-		for (int i = 0; i < envIndex; i++)
+		openFile(&fileOut);
+		
+		if (envIndex > 0)
 		{
-			printf("%s=%s\n", envTable.var[i], envTable.word[i]);
+			for (int i = 0; i < envIndex; i++)
+			{
+				fprintf(fileOut, "%s=%s\n", envTable.var[i], envTable.word[i]);
+			}
 		}
+		else
+		{
+			if (p.io_bits & IO_errf)
+			{
+				fprintf(fileOut, "You have no environment variables...\n");
+				fprintf(fileOut, "To add some, use:\n\tsetenv [variable] [value]\n");
+			}
+			else
+			{
+				fprintf(stderr, "You have no environment variables...\n");
+				fprintf(stderr, "To add some, use:\n\tsetenv [variable] [value]\n");
+			}
+		}
+
+		fclose(fileOut);
+		exit(0);
 	}
 	else
 	{
-		printf("You have no environment variables...\n");
-		printf("To add some, use:\n\tsetenv [variable] [value]\n");
+		wait(NULL);
 	}
+
+	cmdIndex = 0;
+	resetCmdPipe(&p);
+	return 1;
 }
 
 int runEnvXpand(char *var){

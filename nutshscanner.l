@@ -84,6 +84,26 @@ int addCmdArg(struct Command *c, char *toInsert)
     return 1;
 }
 
+int addCmdFile(char *toInsert)
+{
+    // printf("io_bits:%i\n", p.io_bits);
+    // printf("io_bits:%s\n", toInsert);
+
+    if ((p.io_bits & IO_in) && (p.ioFile[0] == NULL))
+        { p.ioFile[0] = strdup(toInsert); }
+    else if ((p.io_bits & (IO_out | IO_outa)) && (p.ioFile[1] == NULL))
+        { p.ioFile[1] = strdup(toInsert); }
+    else if ((p.io_bits & IO_errf) && (p.ioFile[2] == NULL))
+        { p.ioFile[2] = strdup(toInsert); }
+    else
+        { return -1; }
+    
+    // for (int i = 0; i < 3; i++)
+	// 	printf("io_files: %s\n", p.ioFile[i]);
+
+    return 1;
+}
+
 char* subAliases(char* name){
     for (int i = 0; i < aliasIndex; i++) {
         if(strcmp(aliasTable.name[i], name) == 0) {
@@ -108,7 +128,7 @@ bool ifENV(char *var){
             return true;
         }
     }
-    printf("Error: \"%s\" not found in environment table!\n", var);
+    fprintf(stderr, "Error: \"%s\" not found in environment table!\n", var);
     return false;
 }
 
@@ -180,7 +200,7 @@ char* strFindEnv(char *str){
 				strncat(temp, &str[i], 1);
 			}
 		}
-		printf("StrXpand_parser: %s\n", temp);
+		//printf("StrXpand_parser: %s\n", temp);
 		return strdup(temp);
 	}
 	else
@@ -190,6 +210,11 @@ char* strFindEnv(char *str){
 }
 
 // %array option supposedly causes yytext to be immune to unput()
+// IO redirection help
+// RDRCTI           <      accept input from file
+// RDRCTO           >[>]   >truncate to zero and write OR >>append to file
+// RDRCTERF         2>     stderr to file "filename"
+// RDRCTERO         2>&1   redirects stderr to stdout
 %}
 
 %array
@@ -204,11 +229,16 @@ ENV             [$][{]
 ENVEND          [}]
 PIPE            "|"
 RUNINBG         "&"
+RDRCTI          "<"
+RDRCTO          ">"[>]*
+RDRCTERF        "2>"
+RDRCTERO        "2>&1"
+CR              "\r"
 
 %%
 <string_condition>{ANYCHAR}+    {
                                     yylval.string = strdup(strFindEnv(yytext));
-                                    printf("yytext_str_c: %s\n", yylval.string);
+                                    //printf("yytext_str_c: %s\n", yylval.string);
                                     if (cmdIndex <= 0)
                                     {
                                         return STRING;
@@ -239,7 +269,7 @@ RUNINBG         "&"
                                             max_xpand = 0;
                                             env_xpand = 0;
                                             char *yycopy = strdup( getENV(env) );
-                                            printf("%s=%s\n", env, yycopy);
+                                            //printf("%s=%s\n", env, yycopy);
                                             // return STRING;
                                             for ( int i = strlen( getENV(env) )-1; i >= 0; --i )
                                             {
@@ -264,7 +294,7 @@ unalias             { firstWord=false; isUnalias=true; return UNALIAS; }
 setenv              { firstWord=false; return SETENV; moreChars = true; }
 printenv            { firstWord=false; return PRINTENV; }
 unsetenv            { firstWord=false; return UNSETENV; }
-"\n"		        { firstWord=true; max_xpand = 1; return END; }
+{CR}?"\n"		    { firstWord=true; max_xpand = 1; return END; }
 [\"]                { BEGIN(string_condition); }
 {ENV}               { 
                         firstWord=false;
@@ -302,7 +332,7 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             alias_xpand = 0;
                         }
                         else if (isUnalias) {
-                            printf("UNALIAS yytext: %s\n", yytext);
+                            //printf("UNALIAS yytext: %s\n", yytext);
                             yylval.string = strdup(yytext);
                             isUnalias = false;
                             return STRING;
@@ -323,15 +353,28 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             if (cmdIndex == 1)
                                 return CMD;
                         }
+                        else if (p.io_bits & (IO_errf|IO_outa|IO_out|IO_in))
+                        {
+                            char *file;
+                            // if file redirection, save next arg as a file for I/O
+                            if (access(yytext, F_OK) == 0)
+                                addCmdFile(yytext);
+                            else if (access(file = getCmdPath(yytext),F_OK) == 0)
+                                addCmdFile(file);
+                            else {
+
+                            }
+                        }
                         else if (cmdIndex > 0)  // all command args here
                         {
+                            
                             addCmdArg(&p.cmd[p.cmdCounter], yytext);
                             //printf("cmd_arg: %s\n", yytext);
                         }
                         else 
                         {
                             firstWord=false;
-                            printf("yytext: %s\n", yytext);
+                            //printf("yytext: %s\n", yytext);
                             yylval.string = strdup(yytext);
                             return STRING;
                         };
@@ -344,10 +387,36 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         // we expect another command
                         p.cmdCounter++;
                         firstWord=true;
-                    }               
-                
+                    }
+
+{RDRCTI}|{RDRCTO}|{RDRCTERF}|{RDRCTERO} {
+                        if (!firstWord)
+                        { 
+                            if (strcmp(yytext,"<") == 0)
+                                p.io_bits |= IO_in;
+                            else if (strcmp(yytext,">") == 0)
+                                p.io_bits |= IO_out; 
+                            else if (strcmp(yytext,">>") == 0)
+                                p.io_bits |= IO_outa;
+                            else if (strcmp(yytext,"2>") == 0)
+                                p.io_bits |= IO_errf; 
+                            else if (strcmp(yytext,"2>&1") == 0)
+                                p.io_bits |= IO_errout;
+                            
+                            //printf("IO:%i\n", p.io_bits);
+
+                        } 
+                    }
+
 {RUNINBG}"\n"       { firstWord=true; p.bg = true; return END; }
 
 %%
+
+// IO redirection help
+// RDRCTI           <      accept input from file
+// RDRCTO           >[>]*  >truncate to zero and write OR >>append to file
+// RDRCTERF         2>     stderr to file "filename"
+// RDRCTERO         2>&1   redirects stderr to stdout
+
 
 // todo: cmdform         cmd [arg]* [|cmd [arg]*]* [ >[>] fn2 ] [ 2>fn3 || 2>&1 ] [&]
