@@ -33,7 +33,7 @@ char* getFirstTwo(char* path){
     char* temp;
     strncpy(temp, path, 2);
     temp[2] = '\0';
-    printf("First two of path: %s", temp);
+    // printf("First two of path: %s", temp);
     return temp;
 }
 
@@ -54,14 +54,6 @@ char* getParentDir(char* path){
         }
     }
     int pos = index + 1;
-    if(index == -1)
-  	{
-  		printf("\n Error: Element '%c' does not exist.\n", slash);
-	}
-	else
-	{
-		printf("\n The Last '%c' in the string is at position %d.\n", slash, pos);
-	}
 
     // take substring of string up to the last /
     for(int i = 0; i < pos; i++)
@@ -69,7 +61,7 @@ char* getParentDir(char* path){
         substr[i] = path[i];
     }
 
-    printf("Substring: \"%s\"\n", substr); // '\"' to print "
+    // printf("Substring: \"%s\"\n", substr); // '\"' to print "
     
     // assign substring to pwd environment variable
     runCD(substr);

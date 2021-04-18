@@ -333,7 +333,7 @@ int runSetAlias(char *name, char *word) {
 			}
 			else
 			{
-				fprintf(stderr, "Error 1\n");
+				fprintf(stderr, "Error\n");
 				return -1;
 			}
 		}
@@ -348,7 +348,7 @@ int runSetAlias(char *name, char *word) {
 	}
 	else
 	{
-		fprintf(stderr, "Error 2\n");
+		fprintf(stderr, "Error\n");
 		return -1;
 	}
 
@@ -429,30 +429,24 @@ char* replaceInPath(const char* path, const char* oldChar, const char* newDir)
 
 int clearPathTokens()
 {
-	printf("Clearing Path: \n");
+	// printf("Clearing Path: \n");
 	for(int i = 0; i <= pathIndex; i++)
 	{
 		strcpy(currPathTokens[i], "\0");
 		pathIndex--;
 	}
-	
-	for (int j = 0; j < pathIndex; j++)
-	{
-		printf("'%s' has length %lu\n", currPathTokens[j], strlen(currPathTokens[j]));
-	}
-	printf("Current Path Index: %d\n\n", pathIndex);
 
 	return 1;
 }
 
 int parsePath(char* path, char* delim)
 {
-	printf("Parsing Path: \n");
+	// printf("Parsing Path: \n");
 	// check if path is empty, if not clear it
 	if(pathIndex != 0)
 	{
 		// clear path token array
-		printf("Current Path Index: %d. Path must be cleared first.\n", pathIndex);
+		// printf("Current Path Index: %d. Path must be cleared first.\n", pathIndex);
 		clearPathTokens();
 	}
 
@@ -467,7 +461,7 @@ int parsePath(char* path, char* delim)
 	int i = 0;
 	while(token != NULL)
 	{
-		printf("Incoming token: %s\n", token);
+		// printf("Incoming token: %s\n", token);
 		if(strcmp(token, "."))
 		{
 
@@ -478,12 +472,6 @@ int parsePath(char* path, char* delim)
 		token = strtok(NULL, delim);
 	}
 	i = 0; // reset i
-
-	for (int j = 0; j < pathIndex; j++)
-	{
-		printf("'%s' has length %lu\n", currPathTokens[j], strlen(currPathTokens[j]));
-	}
-	printf("Current Path Index: %d\n\n", pathIndex);
 
 	return 1;
 }
@@ -522,17 +510,14 @@ int runSetenv(char *var, char *word) {
 			const char* temp = getHomeDir();
 			char buf[100];
 			strcpy(buf, temp);
-			const char* tempHome = strcat(buf, "/");
-
-			printf("home: %s\n", tempHome);
-			
+			const char* tempHome = strcat(buf, "/");			
 			char* tempTilde = replaceInPath(tempWord, "~", tempHome); // homedir
 			char* newPath = replaceInPath(tempTilde, "//", "/");
 
 			// store path in envTable
 			strcpy(envTable.word[i], newPath);
 
-			printf("pathReplaced: %s\n", tempTilde);
+			// printf("pathReplaced: %s\n", tempTilde);
 
 			// check if word is path
 			if(word[0] == '.') 
