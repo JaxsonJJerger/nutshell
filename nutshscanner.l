@@ -4,13 +4,10 @@
 #include <string.h>
 #include "global.h"
 
-// int *env_xpand = &envTable.env_xpand;
-// int *max_xpand = &envTable.max_xpand;
-// envTable.env_xpand = 0;
-// envTable.max_xpand = 1;
 char *stringSaver;
 int alias_xpand = 0;
 bool isUnalias = false;
+bool isPath = false;
 bool moreChars = false;
 bool firstWord = true;
 
@@ -30,6 +27,54 @@ char* getCmdPath(char *cmd){
         }
     }
     return cmd;
+}
+
+char* getFirstTwo(char* path){
+    char* temp;
+    strncpy(temp, path, 2);
+    temp[2] = '\0';
+    printf("First two of path: %s", temp);
+    return temp;
+}
+
+char* getParentDir(char* path){
+    char* substr;
+    char slash = '/';
+    int length = strlen(path);
+    int index = -1;
+
+    // check if beginning == END
+
+    // parse cwd for '/' in string that is not the END
+    for(int i = 0; i <= length; i++)
+    {
+        if(path[i] == slash)
+        {
+            index = i;
+        }
+    }
+    int pos = index + 1;
+    if(index == -1)
+  	{
+  		printf("\n Error: Element '%c' does not exist.\n", slash);
+	}
+	else
+	{
+		printf("\n The Last '%c' in the string is at position %d.\n", slash, pos);
+	}
+
+    // take substring of string up to the last /
+    for(int i = 0; i < pos; i++)
+    {
+        substr[i] = path[i];
+    }
+
+    printf("Substring: \"%s\"\n", substr); // '\"' to print "
+    
+    // assign substring to pwd environment variable
+    runCD(substr);
+
+  	return 0;
 }
 
 int addCmdArg(struct Command *c, char *toInsert)
@@ -153,7 +198,7 @@ char* strFindEnv(char *str){
 %x env_condition
 %x cmd_condition
 
-CHAR            [.A-Za-z0-9!\/_-][.A-Za-z0-9!\/_-]*
+CHAR            [.A-Za-z0-9!\/_-][.A-Za-z0-9!\/:_-~]*
 ANYCHAR         [)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -][}{)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -]*
 ENV             [$][{]
 ENVEND          [}]
@@ -215,7 +260,7 @@ RUNINBG         "&"
 bye                 { firstWord=false; return BYE; }
 cd		            { firstWord=false; return CD; }
 alias		        { firstWord=false; alias_xpand++; return ALIAS; }
-unalias             { isUnalias = true; firstWord=false; return UNALIAS; }
+unalias             { firstWord=false; isUnalias=true; return UNALIAS; }
 setenv              { firstWord=false; return SETENV; moreChars = true; }
 printenv            { firstWord=false; return PRINTENV; }
 unsetenv            { firstWord=false; return UNSETENV; }
@@ -245,7 +290,7 @@ unsetenv            { firstWord=false; return UNSETENV; }
                             env_xpand = 0;
                         }
                     }
-{CHAR}+             {   
+{CHAR}+             {
                         char *binPath;
                         if(ifAlias(yytext) && !isUnalias && alias_xpand == 0) {
                             char *yycopy = strdup(subAliases(yytext));
@@ -299,7 +344,8 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         // we expect another command
                         p.cmdCounter++;
                         firstWord=true;
-                    }                  
+                    }               
+                
 {RUNINBG}"\n"       { firstWord=true; p.bg = true; return END; }
 
 %%

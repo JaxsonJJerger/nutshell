@@ -10,7 +10,6 @@
 int yylex(void);
 int yyerror(char *s);
 int cmdRunner();
-int runCD(char* arg);
 int runAlias();
 int runSetAlias(char *name, char *word);
 int runUnalias(char *name);
@@ -28,7 +27,7 @@ int runEnvXpand(char *var);
 
 %%
 cmd_line    :
-	BYE END 		                {exit(1); return 1; }
+	BYE END 		                {exit(1); return 1;}
 	| CD END						{runCD(" "); return 1; }
 	| CD STRING END        			{runCD($2); return 1;}
 	| ALIAS END						{runAlias(" "); return 1;}
@@ -38,6 +37,7 @@ cmd_line    :
 	| PRINTENV END					{printenvTable(); return 1;}
 	| UNSETENV STRING END			{runUnsetenv($2); return 1;}
 	| CMD END						{cmdRunner(); return 1;}
+	| END							{return 1;}
 
 %%
 
@@ -282,6 +282,115 @@ int runUnalias(char *name) {
 	return 1;
 }
 
+const char* getHomeDir(){
+   const char* homedir = getpwuid(getuid())->pw_dir;
+   return homedir;
+}
+
+const char* getCurrDir(){
+   const char* currdir = getcwd(cwd, sizeof(cwd));
+   return currdir;
+}
+
+char* replaceInPath(const char* path, const char* oldChar, const char* newDir)
+{
+    int count = 0;
+    int newLength = strlen(newDir);
+    int oldLength = strlen(oldChar);
+  
+    // count special characters in path
+	int i;
+    for (i = 0; path[i] != '\0'; ++i) 
+	{
+        if (strstr(&path[i], oldChar) == &path[i]) 
+		{
+            count++;
+            i += oldLength - 1;
+        }
+    }
+  
+    // make new string of dynamic length
+	char* newPath;
+    newPath = (char*)malloc(i + count * (newLength - oldLength) + 1);
+  
+	// compare strings
+    i = 0;
+    while (*path) {
+        if (strstr(path, oldChar) == path) {
+            strcpy(&newPath[i], newDir);
+            i += newLength;
+            path += oldLength;
+        }
+        else
+            newPath[i++] = *path++;
+    }
+  
+    newPath[i] = '\0';
+    return newPath;
+}
+
+
+int clearPathTokens()
+{
+	printf("Clearing Path: \n");
+	for(int i = 0; i <= pathIndex; i++)
+	{
+		strcpy(currPathTokens[i], "\0");
+		pathIndex--;
+	}
+	
+	for (int j = 0; j < pathIndex; j++)
+	{
+		printf("'%s' has length %lu\n", currPathTokens[j], strlen(currPathTokens[j]));
+	}
+	printf("Current Path Index: %d\n\n", pathIndex);
+
+	return 1;
+}
+
+int parsePath(char* path, char* delim)
+{
+	printf("Parsing Path: \n");
+	// check if path is empty, if not clear it
+	if(pathIndex != 0)
+	{
+		// clear path token array
+		printf("Current Path Index: %d. Path must be cleared first.\n", pathIndex);
+		clearPathTokens();
+	}
+
+	// remove first char '.' from path
+	if(path[0] == '.')
+	{
+		memmove(path, path+1, strlen(path));
+	}
+
+	char* token = strtok(path, delim);
+
+	int i = 0;
+	while(token != NULL)
+	{
+		printf("Incoming token: %s\n", token);
+		if(strcmp(token, "."))
+		{
+
+		}
+		strcpy(currPathTokens[i], token);
+		pathIndex++;
+		i++;
+		token = strtok(NULL, delim);
+	}
+	i = 0; // reset i
+
+	for (int j = 0; j < pathIndex; j++)
+	{
+		printf("'%s' has length %lu\n", currPathTokens[j], strlen(currPathTokens[j]));
+	}
+	printf("Current Path Index: %d\n\n", pathIndex);
+
+	return 1;
+}
+
 /* todo (if required):
 	- check for embedded aliases
 		- if no known alias
@@ -309,10 +418,34 @@ int runSetenv(char *var, char *word) {
 	// search for existing environment variable name
 	// if yes, replace existing word and return
 	for (int i = 0; i < envIndex; i++) {
-
 		if(strcmp(envTable.var[i], var) == 0) 
 		{
-			strcpy(envTable.word[i], word);
+			// check for special conventions
+			const char* tempWord = word;
+			const char* temp = getHomeDir();
+			char buf[100];
+			strcpy(buf, temp);
+			const char* tempHome = strcat(buf, "/");
+
+			printf("home: %s\n", tempHome);
+			
+			char* tempTilde = replaceInPath(tempWord, "~", tempHome); // homedir
+			char* newPath = replaceInPath(tempTilde, "//", "/");
+
+			// store path in envTable
+			strcpy(envTable.word[i], newPath);
+
+			printf("pathReplaced: %s\n", tempTilde);
+
+			// check if word is path
+			if(word[0] == '.') 
+			{
+				parsePath(word, ":");
+			}
+			else
+			{
+				printf("Error: path must begin with a '.'");
+			}
 			return 1;
 		}
 	}
