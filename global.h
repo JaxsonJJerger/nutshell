@@ -50,7 +50,7 @@ char currPathTokens[128][100];
 
 int aliasIndex, envIndex, env_xpand, max_xpand, cmdIndex, pathIndex;
 
-const char *homedir;
+const char *homedir, *currdir;
 
 // int resetCurrPath(char[][]*);
 
@@ -60,8 +60,10 @@ char* getENV(char *var);
 int runCD(char* arg);
 bool ifENV(char *var);
 
-
 void initCmd(struct Command *c);
 void resetCmd(struct Command *c);
 void resetCmdPipe(struct Pipeline *p);
 int addCmdArg(struct Command *c, char *toInsert);
+
+const char* getHomeDir();
+const char* getCurrDir();

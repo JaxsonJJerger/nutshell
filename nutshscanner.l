@@ -29,11 +29,14 @@ char* getCmdPath(char *cmd){
     return cmd;
 }
 
-const char* getHomeDir(){
-    homedir = getpwuid(getuid())->pw_dir;
-    return homedir;
+char* getFirstTwo(char* path){
+    char* temp;
+    strncpy(temp, path, 2);
+    temp[2] = '\0';
+    printf("First two of path: %s", temp);
+    return temp;
 }
- 
+
 char* getParentDir(char* path){
     char* substr;
     char slash = '/';
@@ -195,8 +198,7 @@ char* strFindEnv(char *str){
 %x env_condition
 %x cmd_condition
 
-DOTTIL          "."|".."|"~"{CHAR}*
-CHAR            [.A-Za-z0-9!\/_-][.A-Za-z0-9!\/:_-]*
+CHAR            [.A-Za-z0-9!\/_-][.A-Za-z0-9!\/:_-~]*
 ANYCHAR         [)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -][}{)(*&%$#@!`;,\.a-zA-Z0-9'/*_=~ -]*
 ENV             [$][{]
 ENVEND          [}]
@@ -287,29 +289,6 @@ unsetenv            { firstWord=false; return UNSETENV; }
                         {
                             env_xpand = 0;
                         }
-                    }
-{DOTTIL}            {
-                        char *yycopy = strdup(yytext);
-                        if(strcmp(yytext, "..") == 0) {
-                            printf("PARENT\n");
-                            // yycopy = strdup(getParentDir());
-                            getParentDir(yycopy);
-                            // return STRING;
-                        }
-                        else if(strcmp(yytext, ".") == 0) {
-                            printf("CURRDIRR\n");
-                            yycopy = strdup(getcwd(cwd, sizeof(cwd)));
-                            printf("currdir found: %s\n", yycopy);
-                            // return STRING;
-                        }
-                        else if(strcmp(yytext, "~") == 0) {
-                            printf("TILDE\n");
-                            yycopy = strdup(getHomeDir());
-                            printf("homedir found: %s\n", homedir);
-                            // return STRING;
-                        }
-                        free(yycopy);
-                        return STRING;
                     }
 {CHAR}+             {
                         char *binPath;

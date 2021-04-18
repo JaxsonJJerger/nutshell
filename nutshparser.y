@@ -37,6 +37,7 @@ cmd_line    :
 	| PRINTENV END					{printenvTable(); return 1;}
 	| UNSETENV STRING END			{runUnsetenv($2); return 1;}
 	| CMD END						{cmdRunner(); return 1;}
+	| END							{return 1;}
 
 %%
 
@@ -281,6 +282,54 @@ int runUnalias(char *name) {
 	return 1;
 }
 
+const char* getHomeDir(){
+   const char* homedir = getpwuid(getuid())->pw_dir;
+   return homedir;
+}
+
+const char* getCurrDir(){
+   const char* currdir = getcwd(cwd, sizeof(cwd));
+   return currdir;
+}
+
+char* replaceInPath(const char* path, const char* oldChar, const char* newDir)
+{
+    int count = 0;
+    int newLength = strlen(newDir);
+    int oldLength = strlen(oldChar);
+  
+    // count special characters in path
+	int i;
+    for (i = 0; path[i] != '\0'; ++i) 
+	{
+        if (strstr(&path[i], oldChar) == &path[i]) 
+		{
+            count++;
+            i += oldLength - 1;
+        }
+    }
+  
+    // make new string of dynamic length
+	char* newPath;
+    newPath = (char*)malloc(i + count * (newLength - oldLength) + 1);
+  
+	// compare strings
+    i = 0;
+    while (*path) {
+        if (strstr(path, oldChar) == path) {
+            strcpy(&newPath[i], newDir);
+            i += newLength;
+            path += oldLength;
+        }
+        else
+            newPath[i++] = *path++;
+    }
+  
+    newPath[i] = '\0';
+    return newPath;
+}
+
+
 int clearPathTokens()
 {
 	printf("Clearing Path: \n");
@@ -371,13 +420,31 @@ int runSetenv(char *var, char *word) {
 	for (int i = 0; i < envIndex; i++) {
 		if(strcmp(envTable.var[i], var) == 0) 
 		{
+			// check for special conventions
+			const char* tempWord = word;
+			const char* temp = getHomeDir();
+			char buf[100];
+			strcpy(buf, temp);
+			const char* tempHome = strcat(buf, "/");
+
+			printf("home: %s\n", tempHome);
+			
+			char* tempTilde = replaceInPath(tempWord, "~", tempHome); // homedir
+			char* newPath = replaceInPath(tempTilde, "//", "/");
+
 			// store path in envTable
-			strcpy(envTable.word[i], word);
+			strcpy(envTable.word[i], newPath);
+
+			printf("pathReplaced: %s\n", tempTilde);
 
 			// check if word is path
 			if(word[0] == '.') 
 			{
 				parsePath(word, ":");
+			}
+			else
+			{
+				printf("Error: path must begin with a '.'");
 			}
 			return 1;
 		}
