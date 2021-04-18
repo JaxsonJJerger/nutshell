@@ -5,7 +5,7 @@
 #include "global.h"
 
 char *stringSaver;
-int alias_xpand = 0;
+int alias_xpand = 1;
 bool isUnalias = false;
 bool isPath = false;
 bool moreChars = false;
@@ -281,12 +281,12 @@ CR              "\r"
 [ ]		            { }
 bye                 { firstWord=false; return BYE; }
 cd		            { firstWord=false; return CD; }
-alias		        { firstWord=false; alias_xpand++; return ALIAS; }
+alias		        { firstWord=false; alias_xpand = 0; return ALIAS; }
 unalias             { firstWord=false; isUnalias=true; return UNALIAS; }
 setenv              { firstWord=false; return SETENV; moreChars = true; }
 printenv            { firstWord=false; return PRINTENV; }
 unsetenv            { firstWord=false; return UNSETENV; }
-{CR}?"\n"		    { firstWord=true; max_xpand = 1; return END; }
+{CR}?"\n"		    { firstWord=true; alias_xpand = 1; max_xpand = 1; return END; }
 [\"]                { BEGIN(string_condition); }
 {ENV}               { 
                         firstWord=false;
@@ -314,7 +314,7 @@ unsetenv            { firstWord=false; return UNSETENV; }
                     }
 {CHAR}+             {
                         char *binPath;
-                        if(ifAlias(yytext) && !isUnalias && alias_xpand == 0) {
+                        if(ifAlias(yytext) && !isUnalias && alias_xpand == 1) {
                             char *yycopy = strdup(subAliases(yytext));
                             for(int i = strlen(subAliases(yytext)) - 1; i >= 0; --i)
                             {
