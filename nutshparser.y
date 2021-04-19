@@ -58,11 +58,11 @@ int openFile(FILE **file){
 	return 1;
 }
 
-int pipeliner(struct Pipeline *p, int cOut, int cIn){
+int pipeliner(int cOut, int cIn){
 	int pipeline[2], status, done=0;
 	pipe(pipeline);
 
-	pid_t procid;
+	pid_t procid, procid2;
 
 	procid = fork();
 	int i;
@@ -71,19 +71,31 @@ int pipeliner(struct Pipeline *p, int cOut, int cIn){
 		i = 0;
 
 		dup2(pipeline[1], STDOUT_FILENO);
-		execv(p->cmd[cOut].cmd, p->cmd[cOut].args);
+		execv(p.cmd[cOut].cmd, p.cmd[cOut].args);
 		_exit(EXIT_FAILURE);
 	}
-	procid = fork();
-	if(procid == 0) // child
+	procid2 = fork();
+	if(procid2 == 0) // child
 	{
 		i = 1;
 		close(pipeline[1]);
 
 		dup2(pipeline[0], STDIN_FILENO);
-		execv(p->cmd[cIn].cmd, p->cmd[cIn].args);
+		execv(p.cmd[cIn].cmd, p.cmd[cIn].args);
 		_exit(EXIT_FAILURE);
 	}
+
+	if (p.cmdCounter > cIn)
+	{
+		int child;
+		if (child = fork() <= 0)
+		{
+			pipeliner(++cOut, ++cIn);
+		}
+		else
+			wait(NULL);
+	}
+
 	close(pipeline[0]);
 	close(pipeline[1]);
 }
@@ -134,9 +146,13 @@ void ioRedirect(char *cmd, char *args[])
 	}
 
 	if (child2 = fork() <= 0)
+	{
 		execv(cmd, args);
+	}
 	else
+	{
 		wait(NULL);
+	}
 		
 	close(fileIn);
 	close(fileOut);
@@ -153,14 +169,14 @@ int cmdRunner(){
 		
 		if (cmdIndex > 1)	// number of cmds is more than 1
 		{
-			//printf("In the cmdRunner.\n");
-			pipeliner(&p, 0, 1);
+			//printf("In the pipeline.\n");
+			pipeliner(0, 1);
 		}
-		else{
+		else if (cmdIndex == 1){
 			if (p.cmd[0].aIndex == 1) // no args available besides path
 			{
 				char *aRep[2] = {strdup(p.cmd[0].args[0]), 0};
-				ioRedirect(p.cmd[0].cmd, p.cmd[0].args);
+				ioRedirect(p.cmd[0].cmd, aRep);
 				// if (child2 = fork() <= 0)
 				// 	execv(p.cmd[0].cmd, p.cmd[0].args);
 				// else
@@ -177,7 +193,8 @@ int cmdRunner(){
 			}
 				
 		}
-		_exit(EXIT_FAILURE);
+		exit(1);
+		_exit(EXIT_FAILURE);	
 	}
 	else
 	{

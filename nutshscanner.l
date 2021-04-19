@@ -375,11 +375,12 @@ unsetenv            { firstWord=false; return UNSETENV; }
 {PIPE}              {
                         // add NULL character in case there are no args
                         // besides the cmd path
-                        addCmdArg(&p.cmd[p.cmdCounter], NULL);
+                        //addCmdArg(&p.cmd[p.cmdCounter], NULL);
 
                         // we expect another command
                         p.cmdCounter++;
                         firstWord=true;
+                        
                     }
 
 {RDRCTI}|{RDRCTO}|{RDRCTERF}|{RDRCTERO} {
