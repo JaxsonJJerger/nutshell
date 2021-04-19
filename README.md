@@ -23,7 +23,7 @@ setenv/printenv/unsetenv/cd/bye
 
 <, >, >>, 2>, 2>&1 (work in specified combination)
 
-- Attempted piping, does not work, will cause seg fault
+- Piping non-built-in commands (does not work with  I/O redirect)
 
 - Environment variable expansions (separate word or withing quotes/strings)
 
@@ -73,7 +73,7 @@ A command interpreter for a Korn shell-like command language in C using Lex and 
 
 - cmd \[arg]\* \[|cmd \[arg]\*]\* \[< fn1] \[ >[>] fn2 ] \[ 2>fn3 || 2>&1 ] \[&]
 
-Implemented: I/O redirection works for all built-in commands as well as the non-built-in commands 'alias' and 'printenv'. Redirections can be used in combination with one another except those with exclusive or must be one or the other. Built-in commands available are limited to PATH environment variable directories.
+Implemented: I/O redirection works for all built-in commands as well as the non-built-in commands 'alias' and 'printenv'. Redirections can be used in combination with one another except those with exclusive or must be one or the other. Built-in commands available are limited to PATH environment variable directories. Non-built-in commands can be piped together, though there is a bug that the prompt will print before it has completed.
 
   
 
