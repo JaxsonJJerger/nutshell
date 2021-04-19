@@ -293,7 +293,7 @@ int runAlias() {
 		{
 			for (int i = 0; i < aliasIndex; i++)
 			{
-				fprintf(fileOut,"%s = %s\n", aliasTable.name[i], aliasTable.word[i]);
+				fprintf(fileOut,"%s=%s\n", aliasTable.name[i], aliasTable.word[i]);
 			}
 		}
 		fclose(fileOut);
@@ -333,7 +333,7 @@ int runSetAlias(char *name, char *word) {
 			}
 			else
 			{
-				fprintf(stderr, "Error\n");
+				fprintf(stderr, "Error, expansion of \"%s\" would create a loop.\n");
 				return -1;
 			}
 		}
@@ -348,7 +348,7 @@ int runSetAlias(char *name, char *word) {
 	}
 	else
 	{
-		fprintf(stderr, "Error\n");
+		fprintf(stderr, "Error, expansion of \"%s\" would create a loop.\n");
 		return -1;
 	}
 
@@ -417,8 +417,7 @@ char* replaceInPath(const char* path, const char* oldChar, const char* newDir)
         else
         {
             newPath[j++] = *path++;
-        }
-            
+        }     
     }
 
     newPath[j] = '\0';
