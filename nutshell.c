@@ -66,6 +66,10 @@ int main()
     strcpy(envTable.var[envIndex], "PATH");
     strcpy(envTable.word[envIndex], ".:/bin");
     envIndex++;
+    strcpy(currPathTokens[pathIndex], ".");
+    pathIndex++;
+    strcpy(currPathTokens[pathIndex], "/bin");
+    pathIndex++;
 
     system("clear");
     while(1)
