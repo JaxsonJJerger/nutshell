@@ -333,7 +333,7 @@ int runSetAlias(char *name, char *word) {
 			}
 			else
 			{
-				fprintf(stderr, "Error, expansion of \"%s\" would create a loop.\n");
+				printf("Error");
 				return -1;
 			}
 		}
@@ -348,7 +348,7 @@ int runSetAlias(char *name, char *word) {
 	}
 	else
 	{
-		fprintf(stderr, "Error, expansion of \"%s\" would create a loop.\n");
+		printf("Error");
 		return -1;
 	}
 
